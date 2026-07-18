@@ -62,7 +62,12 @@ function statusBadge(p, short = true) {
 }
 
 function routeUrl(p) {
-  return `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}&travelmode=walking`;
+  // FR-06: iOS/iPadOS -> Apple Maps, остальные -> Google Maps; пешком по умолчанию
+  const isApple = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  return isApple
+    ? `https://maps.apple.com/?daddr=${p.lat},${p.lng}&dirflg=w`
+    : `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}&travelmode=walking`;
 }
 
 // ---------- геолокация (FR-02) ----------
