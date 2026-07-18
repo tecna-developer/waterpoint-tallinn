@@ -1,0 +1,708 @@
+{
+ "fetched_at": "2026-07-18T09:41:57.272Z",
+ "source": "Tallinn GIS ArcGIS REST — veebikaart/Veev6tukohad (Avalikud veevõtukohad)",
+ "points": [
+  {
+   "source_object_id": 2569,
+   "code": "VVK-090",
+   "name": "Ringi tn 33",
+   "lat": 59.483921,
+   "lng": 25.021365,
+   "district": "Maardu",
+   "asum": null
+  },
+  {
+   "source_object_id": 2570,
+   "code": "VVK-094",
+   "name": "Keemikute tn 10",
+   "lat": 59.476582,
+   "lng": 25.018346,
+   "district": "Maardu",
+   "asum": null
+  },
+  {
+   "source_object_id": 2571,
+   "code": "VVK-104",
+   "name": "Laua tn 12",
+   "lat": 59.323464,
+   "lng": 24.554088,
+   "district": "Saue",
+   "asum": null
+  },
+  {
+   "source_object_id": 2517,
+   "code": "VVK-049",
+   "name": "Vabaõhumuuseumi tee 19",
+   "lat": 59.431072,
+   "lng": 24.638007,
+   "district": "Haabersti",
+   "asum": "Haabersti"
+  },
+  {
+   "source_object_id": 2518,
+   "code": "VVK-052",
+   "name": "Valge tn 18",
+   "lat": 59.439266,
+   "lng": 24.805606,
+   "district": "Lasnamäe",
+   "asum": "Kurepõllu"
+  },
+  {
+   "source_object_id": 2519,
+   "code": "VVK-054",
+   "name": "Paldiski mnt 94a",
+   "lat": 59.428294,
+   "lng": 24.66732,
+   "district": "Haabersti",
+   "asum": "Mustjõe"
+  },
+  {
+   "source_object_id": 2520,
+   "code": "VVK-055",
+   "name": "Külmallika tn 1",
+   "lat": 59.389096,
+   "lng": 24.660838,
+   "district": "Nõmme",
+   "asum": "Vana-Mustamäe"
+  },
+  {
+   "source_object_id": 2521,
+   "code": "VVK-056",
+   "name": "Rummu tee 3d",
+   "lat": 59.463481,
+   "lng": 24.833188,
+   "district": "Pirita",
+   "asum": "Pirita"
+  },
+  {
+   "source_object_id": 2522,
+   "code": "VVK-057",
+   "name": "Nõmme tee 52",
+   "lat": 59.414376,
+   "lng": 24.716167,
+   "district": "Kristiine",
+   "asum": "Lilleküla"
+  },
+  {
+   "source_object_id": 2523,
+   "code": "VVK-058",
+   "name": "Varraku tn 14",
+   "lat": 59.442977,
+   "lng": 24.847344,
+   "district": "Lasnamäe",
+   "asum": "Laagna"
+  },
+  {
+   "source_object_id": 2531,
+   "code": "VVK-067",
+   "name": "Kungla tn 65",
+   "lat": 59.449248,
+   "lng": 24.732598,
+   "district": "Põhja-Tallinn",
+   "asum": "Kalamaja"
+  },
+  {
+   "source_object_id": 2540,
+   "code": "VVK-077",
+   "name": "Narva mnt 95 Lauluväljak",
+   "lat": 59.443337,
+   "lng": 24.80765,
+   "district": "Kesklinn",
+   "asum": "Kadriorg"
+  },
+  {
+   "source_object_id": 2563,
+   "code": "VVK-010",
+   "name": "Niguliste tn / Harju tn ristmik",
+   "lat": 59.436261,
+   "lng": 24.744331,
+   "district": "Kesklinn",
+   "asum": "Vanalinn"
+  },
+  {
+   "source_object_id": 2565,
+   "code": "VVK-060",
+   "name": "Narva mnt 91 Lauluväljak",
+   "lat": 59.443812,
+   "lng": 24.806579,
+   "district": "Kesklinn",
+   "asum": "Kadriorg"
+  },
+  {
+   "source_object_id": 2567,
+   "code": "VVK-033",
+   "name": "Varraku tn 16",
+   "lat": 59.445009,
+   "lng": 24.847255,
+   "district": "Lasnamäe",
+   "asum": "Tondiraba"
+  },
+  {
+   "source_object_id": 2568,
+   "code": "VVK-033",
+   "name": "Varraku tn 16",
+   "lat": 59.444577,
+   "lng": 24.857043,
+   "district": "Lasnamäe",
+   "asum": "Tondiraba"
+  },
+  {
+   "source_object_id": 2850,
+   "code": "VVK-068",
+   "name": "Väike-Ameerika tn 2",
+   "lat": 59.426783,
+   "lng": 24.742302,
+   "district": "Kesklinn",
+   "asum": "Uus Maailm"
+  },
+  {
+   "source_object_id": 2851,
+   "code": "VVK-069",
+   "name": "Kopliranna tn 3",
+   "lat": 59.450155,
+   "lng": 24.684004,
+   "district": "Põhja-Tallinn",
+   "asum": "Pelguranna"
+  },
+  {
+   "source_object_id": 2852,
+   "code": "VVK-071",
+   "name": "Roheline aas 26",
+   "lat": 59.432473,
+   "lng": 24.78505,
+   "district": "Kesklinn",
+   "asum": "Kadriorg"
+  },
+  {
+   "source_object_id": 2853,
+   "code": "VVK-072",
+   "name": "Vabaduse väljak 6",
+   "lat": 59.434042,
+   "lng": 24.74478,
+   "district": "Kesklinn",
+   "asum": "Vanalinn"
+  },
+  {
+   "source_object_id": 2854,
+   "code": "VVK-073",
+   "name": "Kalasadama tänav T10",
+   "lat": 59.445522,
+   "lng": 24.748528,
+   "district": "Põhja-Tallinn",
+   "asum": "Kalamaja"
+  },
+  {
+   "source_object_id": 2855,
+   "code": "VVK-074",
+   "name": "Koidu tn 108",
+   "lat": 59.422089,
+   "lng": 24.737079,
+   "district": "Kesklinn",
+   "asum": "Uus Maailm"
+  },
+  {
+   "source_object_id": 2856,
+   "code": "VVK-075",
+   "name": "Siili tn 11b",
+   "lat": 59.408909,
+   "lng": 24.707949,
+   "district": "Kristiine",
+   "asum": "Lilleküla"
+  },
+  {
+   "source_object_id": 2857,
+   "code": "VVK-076",
+   "name": "Õismäe tee 110",
+   "lat": 59.416398,
+   "lng": 24.644433,
+   "district": "Haabersti",
+   "asum": "Väike-Õismäe"
+  },
+  {
+   "source_object_id": 2858,
+   "code": "VVK-078",
+   "name": "Ahtri tn 6b",
+   "lat": 59.439788,
+   "lng": 24.759085,
+   "district": "Kesklinn",
+   "asum": "Sadama"
+  },
+  {
+   "source_object_id": 2859,
+   "code": "VVK-079",
+   "name": "Narva mnt 1",
+   "lat": 59.437566,
+   "lng": 24.75702,
+   "district": "Kesklinn",
+   "asum": "Sadama"
+  },
+  {
+   "source_object_id": 2860,
+   "code": "VVK-080",
+   "name": "Nõmme tee 107",
+   "lat": 59.404343,
+   "lng": 24.709916,
+   "district": "Kristiine",
+   "asum": "Tondi"
+  },
+  {
+   "source_object_id": 2862,
+   "code": "VVK-082",
+   "name": "Kaarli pst 7",
+   "lat": 59.432243,
+   "lng": 24.740987,
+   "district": "Kesklinn",
+   "asum": "Vanalinn"
+  },
+  {
+   "source_object_id": 2861,
+   "code": "VVK-081",
+   "name": "Linnamäe tee 28a",
+   "lat": 59.447386,
+   "lng": 24.882214,
+   "district": "Lasnamäe",
+   "asum": "Seli"
+  },
+  {
+   "source_object_id": 2863,
+   "code": "VVK-088",
+   "name": "Reisijate tänav T1",
+   "lat": 59.440592,
+   "lng": 24.736128,
+   "district": "Põhja-Tallinn",
+   "asum": "Kalamaja"
+  },
+  {
+   "source_object_id": 2488,
+   "code": "VVK-003",
+   "name": "Wismari tn 6a",
+   "lat": 59.432488,
+   "lng": 24.732368,
+   "district": "Kesklinn",
+   "asum": "Kassisaba"
+  },
+  {
+   "source_object_id": 2489,
+   "code": "VVK-004",
+   "name": "Nunne tn 18",
+   "lat": 59.439509,
+   "lng": 24.740347,
+   "district": "Kesklinn",
+   "asum": "Vanalinn"
+  },
+  {
+   "source_object_id": 2490,
+   "code": "VVK-005",
+   "name": "Tuulenurga tn 16",
+   "lat": 59.456822,
+   "lng": 24.811515,
+   "district": "Kesklinn",
+   "asum": "Kadriorg"
+  },
+  {
+   "source_object_id": 2491,
+   "code": "VVK-008",
+   "name": "Pirita tee 1",
+   "lat": 59.443313,
+   "lng": 24.793143,
+   "district": "Kesklinn",
+   "asum": "Kadriorg"
+  },
+  {
+   "source_object_id": 2493,
+   "code": "VVK-011",
+   "name": "Viru tn 27a",
+   "lat": 59.436527,
+   "lng": 24.752318,
+   "district": "Kesklinn",
+   "asum": "Vanalinn"
+  },
+  {
+   "source_object_id": 2494,
+   "code": "VVK-012",
+   "name": "Politseiaed",
+   "lat": 59.433811,
+   "lng": 24.766986,
+   "district": "Kesklinn",
+   "asum": "Torupilli"
+  },
+  {
+   "source_object_id": 2495,
+   "code": "VVK-013",
+   "name": "Kalaranna tn/ Vesilennuki tn ristmik",
+   "lat": 59.449963,
+   "lng": 24.737298,
+   "district": "Põhja-Tallinn",
+   "asum": "Kalamaja"
+  },
+  {
+   "source_object_id": 2496,
+   "code": "VVK-015",
+   "name": "Järvevana tee 7n",
+   "lat": 59.406614,
+   "lng": 24.744312,
+   "district": "Kesklinn",
+   "asum": "Luite"
+  },
+  {
+   "source_object_id": 2497,
+   "code": "VVK-017",
+   "name": "Kadrioru park",
+   "lat": 59.436963,
+   "lng": 24.790265,
+   "district": "Kesklinn",
+   "asum": "Kadriorg"
+  },
+  {
+   "source_object_id": 2843,
+   "code": "VVK-060",
+   "name": "Narva mnt 91 Lauluväljak",
+   "lat": 59.444527,
+   "lng": 24.805454,
+   "district": "Kesklinn",
+   "asum": "Kadriorg"
+  },
+  {
+   "source_object_id": 2844,
+   "code": "VVK-062",
+   "name": "Pirita tee 16",
+   "lat": 59.445205,
+   "lng": 24.806033,
+   "district": "Kesklinn",
+   "asum": "Kadriorg"
+  },
+  {
+   "source_object_id": 2845,
+   "code": "VVK-063",
+   "name": "Staadioni tn 5",
+   "lat": 59.425406,
+   "lng": 24.762883,
+   "district": "Kesklinn",
+   "asum": "Juhkentali"
+  },
+  {
+   "source_object_id": 2846,
+   "code": "VVK-063",
+   "name": "Staadioni tn 5",
+   "lat": 59.425408,
+   "lng": 24.762896,
+   "district": "Kesklinn",
+   "asum": "Juhkentali"
+  },
+  {
+   "source_object_id": 2847,
+   "code": "VVK-065",
+   "name": "Paasiku tn 3",
+   "lat": 59.449218,
+   "lng": 24.849565,
+   "district": "Lasnamäe",
+   "asum": "Katleri"
+  },
+  {
+   "source_object_id": 2848,
+   "code": "VVK-066",
+   "name": "Tähetorni tn 50",
+   "lat": 59.386549,
+   "lng": 24.62864,
+   "district": "Nõmme",
+   "asum": "Vana-Mustamäe"
+  },
+  {
+   "source_object_id": 2498,
+   "code": "VVK-022",
+   "name": "Taani Kuninga aed",
+   "lat": 59.435704,
+   "lng": 24.74079,
+   "district": "Kesklinn",
+   "asum": "Vanalinn"
+  },
+  {
+   "source_object_id": 2499,
+   "code": "VVK-023",
+   "name": "Liikuri tn 9a",
+   "lat": 59.441803,
+   "lng": 24.819703,
+   "district": "Lasnamäe",
+   "asum": "Kurepõllu"
+  },
+  {
+   "source_object_id": 2500,
+   "code": "VVK-025",
+   "name": "Algi tn 29",
+   "lat": 59.415974,
+   "lng": 24.697499,
+   "district": "Kristiine",
+   "asum": "Lilleküla"
+  },
+  {
+   "source_object_id": 2501,
+   "code": "VVK-026",
+   "name": "Sepa tn 30",
+   "lat": 59.463807,
+   "lng": 24.678401,
+   "district": "Põhja-Tallinn",
+   "asum": "Kopli"
+  },
+  {
+   "source_object_id": 2503,
+   "code": "VVK-030",
+   "name": "Tondiraba tn 13",
+   "lat": 59.447214,
+   "lng": 24.852373,
+   "district": "Lasnamäe",
+   "asum": "Tondiraba"
+  },
+  {
+   "source_object_id": 2505,
+   "code": "VVK-034",
+   "name": "Varraku tn 18",
+   "lat": 59.446374,
+   "lng": 24.847514,
+   "district": "Lasnamäe",
+   "asum": "Tondiraba"
+  },
+  {
+   "source_object_id": 2506,
+   "code": "VVK-035",
+   "name": "Paasiku tn 4a",
+   "lat": 59.447092,
+   "lng": 24.848053,
+   "district": "Lasnamäe",
+   "asum": "Tondiraba"
+  },
+  {
+   "source_object_id": 2507,
+   "code": "VVK-037",
+   "name": "Järvevana tee 3a",
+   "lat": 59.420714,
+   "lng": 24.772256,
+   "district": "Kesklinn",
+   "asum": "Ülemistejärve"
+  },
+  {
+   "source_object_id": 2508,
+   "code": "VVK-038",
+   "name": "Järvevana tee 9g",
+   "lat": 59.40193,
+   "lng": 24.73264,
+   "district": "Kesklinn",
+   "asum": "Ülemistejärve"
+  },
+  {
+   "source_object_id": 2509,
+   "code": "VVK-039",
+   "name": "Lootsi tn 8",
+   "lat": 59.44067,
+   "lng": 24.765553,
+   "district": "Kesklinn",
+   "asum": "Sadama"
+  },
+  {
+   "source_object_id": 2510,
+   "code": "VVK-040",
+   "name": "Juhkentali tn 10",
+   "lat": 59.427456,
+   "lng": 24.759269,
+   "district": "Kesklinn",
+   "asum": "Veerenni"
+  },
+  {
+   "source_object_id": 2511,
+   "code": "VVK-043",
+   "name": "Järveotsa tee 40",
+   "lat": 59.406139,
+   "lng": 24.645935,
+   "district": "Haabersti",
+   "asum": "Väike-Õismäe"
+  },
+  {
+   "source_object_id": 2512,
+   "code": "VVK-044",
+   "name": "Pärnu maantee T33",
+   "lat": 59.383431,
+   "lng": 24.669404,
+   "district": "Nõmme",
+   "asum": "Hiiu"
+  },
+  {
+   "source_object_id": 2513,
+   "code": "VVK-045",
+   "name": "Vana-Pärnu mnt. 27 taga",
+   "lat": 59.390494,
+   "lng": 24.689859,
+   "district": "Nõmme",
+   "asum": "Nõmme"
+  },
+  {
+   "source_object_id": 2514,
+   "code": "VVK-046",
+   "name": "Pelguranna tn 58",
+   "lat": 59.442291,
+   "lng": 24.685355,
+   "district": "Põhja-Tallinn",
+   "asum": "Merimetsa"
+  },
+  {
+   "source_object_id": 2515,
+   "code": "VVK-047",
+   "name": "Supluse pst 1",
+   "lat": 59.471246,
+   "lng": 24.832223,
+   "district": "Pirita",
+   "asum": "Pirita"
+  },
+  {
+   "source_object_id": 2516,
+   "code": "VVK-048",
+   "name": "Paldiski mnt 229c",
+   "lat": 59.407009,
+   "lng": 24.619477,
+   "district": "Haabersti",
+   "asum": "Väike-Õismäe"
+  },
+  {
+   "source_object_id": 2546,
+   "code": "VVK-084",
+   "name": "Angervaksa tn 14",
+   "lat": 59.446577,
+   "lng": 24.704171,
+   "district": "Põhja-Tallinn",
+   "asum": "Pelgulinn"
+  },
+  {
+   "source_object_id": 2547,
+   "code": "VVK-085",
+   "name": "Puhangu tn 7",
+   "lat": 59.445496,
+   "lng": 24.700376,
+   "district": "Põhja-Tallinn",
+   "asum": "Pelgulinn"
+  },
+  {
+   "source_object_id": 2548,
+   "code": "VVK-086",
+   "name": "Kolde pst 92",
+   "lat": 59.443805,
+   "lng": 24.69799,
+   "district": "Põhja-Tallinn",
+   "asum": "Pelgulinn"
+  },
+  {
+   "source_object_id": 2549,
+   "code": "VVK-087",
+   "name": "Ehte tn 18",
+   "lat": 59.443541,
+   "lng": 24.697657,
+   "district": "Põhja-Tallinn",
+   "asum": "Pelgulinn"
+  },
+  {
+   "source_object_id": 2551,
+   "code": "VVK-089",
+   "name": "Õismäe tee 97a",
+   "lat": 59.410939,
+   "lng": 24.637959,
+   "district": "Haabersti",
+   "asum": "Väike-Õismäe"
+  },
+  {
+   "source_object_id": 2552,
+   "code": "VVK-091",
+   "name": "Paepargi tn 50a",
+   "lat": 59.433082,
+   "lng": 24.80779,
+   "district": "Lasnamäe",
+   "asum": "Sikupilli"
+  },
+  {
+   "source_object_id": 2553,
+   "code": "VVK-092",
+   "name": "Lastekodu tn 12a",
+   "lat": 59.430766,
+   "lng": 24.768011,
+   "district": "Kesklinn",
+   "asum": "Keldrimäe"
+  },
+  {
+   "source_object_id": 2554,
+   "code": "VVK-093",
+   "name": "Odra tänav",
+   "lat": 59.427785,
+   "lng": 24.773709,
+   "district": "Kesklinn",
+   "asum": "Juhkentali"
+  },
+  {
+   "source_object_id": 2555,
+   "code": "VVK-096",
+   "name": "E. Vilde tee 121a",
+   "lat": 59.401741,
+   "lng": 24.665184,
+   "district": "Mustamäe",
+   "asum": "Mustamäe"
+  },
+  {
+   "source_object_id": 2556,
+   "code": "VVK-097",
+   "name": "Ehitajate tee 82",
+   "lat": 59.407187,
+   "lng": 24.673905,
+   "district": "Mustamäe",
+   "asum": "Mustamäe"
+  },
+  {
+   "source_object_id": 2557,
+   "code": "VVK-098",
+   "name": "Raja tn 15",
+   "lat": 59.394723,
+   "lng": 24.662167,
+   "district": "Mustamäe",
+   "asum": "Mustamäe"
+  },
+  {
+   "source_object_id": 2558,
+   "code": "VVK-099",
+   "name": "Sääse tn 20",
+   "lat": 59.408338,
+   "lng": 24.694548,
+   "district": "Mustamäe",
+   "asum": "Sääse"
+  },
+  {
+   "source_object_id": 2559,
+   "code": "VVK-100",
+   "name": "J. Sütiste tee 18a",
+   "lat": 59.396119,
+   "lng": 24.693217,
+   "district": "Mustamäe",
+   "asum": "Mustamäe"
+  },
+  {
+   "source_object_id": 2560,
+   "code": "VVK-101",
+   "name": "Sõpruse pst 175",
+   "lat": 59.406243,
+   "lng": 24.702808,
+   "district": "Mustamäe",
+   "asum": "Siili"
+  },
+  {
+   "source_object_id": 2561,
+   "code": "VVK-102",
+   "name": "E. Vilde tee 71b",
+   "lat": 59.402943,
+   "lng": 24.686929,
+   "district": "Mustamäe",
+   "asum": "Mustamäe"
+  },
+  {
+   "source_object_id": 2562,
+   "code": "VVK-103",
+   "name": "Sõpruse pst 212a",
+   "lat": 59.402671,
+   "lng": 24.698302,
+   "district": "Mustamäe",
+   "asum": "Mustamäe"
+  }
+ ]
+}

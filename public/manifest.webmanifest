@@ -1,0 +1,12 @@
+{
+  "name": "WaterPoint Tallinn",
+  "short_name": "WaterPoint",
+  "description": "Public drinking water points in Tallinn",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f2f6f9",
+  "theme_color": "#2d9cdb",
+  "icons": [
+    { "src": "./icons/drop.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
