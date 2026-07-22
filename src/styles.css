@@ -65,6 +65,9 @@ input, textarea { font-family: inherit; font-size: 15px; color: var(--text); }
 
 .view { flex: 1; overflow-y: auto; display: flex; flex-direction: column; min-height: 0; }
 .view.no-scroll { overflow: hidden; }
+/* В скролл-контейнере прямые дети не должны сжиматься: иначе на низком вьюпорте
+   flexbox схлопывает карточки, а overflow:hidden прячет содержимое (напр. тумблер темы). */
+.view:not(.no-scroll) > * { flex-shrink: 0; }
 
 /* ---------- шапка ---------- */
 .app-header {
