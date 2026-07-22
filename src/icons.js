@@ -41,7 +41,7 @@ export function markerSvg(status, selected) {
     unknown: '#90a0b4'
   };
   const glyphs = {
-    available: '<path d="m12.5 15.5 2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+    available: '<path d="m12 16 2.5 2.5 5.5-5.5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
     seasonal_closed: '<path d="M16 11.5v6M13 14.5h6" stroke="#fff" stroke-width="2" stroke-linecap="round" transform="rotate(45 16 14.5)"/>',
     reported_issue: '<path d="M16 10.5v4.5M16 17.6v.1" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>',
     temporarily_unavailable: '<path d="M13.5 12l5 5M18.5 12l-5 5" stroke="#fff" stroke-width="2" stroke-linecap="round"/>',
@@ -51,7 +51,7 @@ export function markerSvg(status, selected) {
   const c = colors[status] || colors.unknown;
   return `<svg width="${size}" height="${size}" viewBox="0 0 32 32">
     <path d="M16 2C23 9.5 26 14 26 19a10 10 0 0 1-20 0c0-5 3-9.5 10-17z" fill="${c}" stroke="#fff" stroke-width="${selected ? 2.5 : 1.5}"/>
-    <g transform="translate(-4 2)">${glyphs[status] || glyphs.unknown}</g>
+    <g transform="translate(0 3)">${glyphs[status] || glyphs.unknown}</g>
   </svg>`;
 }
 
