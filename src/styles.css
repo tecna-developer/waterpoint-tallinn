@@ -111,7 +111,12 @@ input, textarea { font-family: inherit; font-size: 15px; color: var(--text); }
 /* ---------- чипсы ---------- */
 .chips { display: flex; gap: 8px; padding: 10px 16px; overflow-x: auto; scrollbar-width: none; flex: none; }
 .chips::-webkit-scrollbar { display: none; }
-.map-view .chips { position: absolute; top: 62px; left: 0; right: 0; z-index: 650; padding: 0 12px; }
+/* Над картой поиск и управление лежат слоями поверх полотна */
+.map-view .map-controls {
+  position: absolute; top: 60px; left: 0; right: 0; z-index: 650;
+  padding: 0 12px; display: flex; flex-direction: column; gap: 8px;
+}
+.map-view .map-controls .chips { position: static; padding: 0; }
 .chip {
   flex: none; display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: 500;
@@ -132,7 +137,10 @@ input, textarea { font-family: inherit; font-size: 15px; color: var(--text); }
 
 /* ---------- карта ---------- */
 .map-view { position: relative; }
+#map-slot { position: absolute; inset: 0; z-index: 1; }
 #map { position: absolute; inset: 0; z-index: 1; background: #dceaf2; }
+/* режим ручного выбора точки отсчёта (FR-01) */
+#map.picking { cursor: crosshair; }
 .map-fabs { position: absolute; right: 12px; bottom: 170px; z-index: 650; display: flex; flex-direction: column; gap: 10px; }
 .fab {
   width: 44px; height: 44px; border-radius: 14px; background: var(--surface);
@@ -342,6 +350,112 @@ input, textarea { font-family: inherit; font-size: 15px; color: var(--text); }
 .leaflet-control-attribution { font-size: 9px; }
 :root[data-theme='dark'] .leaflet-layer { filter: brightness(0.7) contrast(1.05) saturate(0.7); }
 :root[data-theme='dark'] .leaflet-control-attribution { background: rgba(26,36,50,.7); color: var(--text-muted); }
+
+/* ---------- категории точек (FR-14…FR-16) ---------- */
+:root { --wc: #3d8f6d; --wc-soft: #e2f2ea; }
+:root[data-theme='dark'] { --wc: #56ab86; --wc-soft: #17332a; }
+
+/* переключатель «Вода / Туалеты / Все» — главный фильтр по ТЗ */
+.cat-seg {
+  display: flex; gap: 4px; padding: 4px; margin: 10px 16px 0;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 999px; box-shadow: var(--shadow);
+}
+.map-view .cat-seg { margin: 0; }
+.seg-opt {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 8px 6px; border-radius: 999px; font-size: 13.5px; font-weight: 600;
+  color: var(--text-muted); white-space: nowrap;
+}
+.seg-opt svg { flex: none; }
+.seg-opt.on { background: var(--primary); color: #fff; }
+.seg-opt[data-cat='public_toilet'].on { background: var(--wc); }
+
+/* подпись категории в списке и карточке — чтобы типы не смешивались визуально */
+.cat-tag {
+  font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+  background: var(--primary-soft); color: var(--primary-strong); white-space: nowrap;
+}
+.cat-tag.public_toilet { background: var(--wc-soft); color: var(--wc); }
+
+.thumb.wc { background: linear-gradient(140deg, var(--wc-soft), #cfe9dd 60%, #b6ddca); color: var(--wc); }
+:root[data-theme='dark'] .thumb.wc { background: linear-gradient(140deg, #143528, #102b21); }
+.hero.wc .back { background: var(--wc); }
+
+/* ---------- легенда карты (§7.1) ---------- */
+.legend {
+  position: absolute; right: 12px; bottom: 226px; z-index: 660; width: 208px;
+  background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow);
+  border: 1px solid var(--border); padding: 10px 12px 12px;
+}
+.legend-head {
+  display: flex; align-items: center; justify-content: space-between;
+  font-weight: 700; font-family: var(--font-heading); font-size: 15px; margin-bottom: 4px;
+}
+.legend-head button { color: var(--text-muted); display: grid; place-items: center; }
+.legend-head svg { width: 16px; height: 16px; }
+.legend-label {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-muted); margin: 8px 0 3px;
+}
+.legend-row { display: flex; align-items: center; gap: 7px; font-size: 12.5px; padding: 2px 0; }
+.legend-row .swatch { flex: none; width: 22px; height: 22px; display: grid; place-items: center; }
+.legend-row .swatch svg { width: 22px; height: 22px; }
+
+/* ---------- честные пробелы в данных (§6.3) ---------- */
+.nodata { color: var(--text-muted); font-weight: 500; font-size: 14px; }
+.attr .val.small { font-size: 13.5px; }
+.nodata-note {
+  display: flex; gap: 7px; align-items: flex-start; font-size: 12.5px; color: var(--text-muted);
+  background: var(--surface-2); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 14px;
+}
+.nodata-note svg { flex: none; margin-top: 1px; }
+
+/* ---------- источник данных (§6.2) ---------- */
+.source-card { background: var(--surface-2); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 14px; }
+.source-card .label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+.source-link { display: inline-flex; align-items: center; gap: 6px; color: var(--primary); font-size: 13.5px; font-weight: 500; padding: 0; text-align: left; }
+.source-card .verified { font-size: 12.5px; color: var(--text-muted); margin-top: 4px; }
+
+/* ---------- эко-блок (FR-12) ---------- */
+.eco-card {
+  display: flex; gap: 11px; align-items: flex-start; margin-bottom: 14px;
+  background: var(--wc-soft); border-radius: var(--radius); padding: 13px 14px;
+}
+.eco-card.standalone { margin: 0 16px 14px; }
+.eco-card svg { color: var(--wc); flex: none; }
+.eco-card div { display: flex; flex-direction: column; gap: 2px; }
+.eco-card strong { font-size: 13.5px; color: var(--text); }
+.eco-card span { font-size: 12.5px; color: var(--text-muted); }
+
+.detail-links { display: flex; gap: 8px; }
+.detail-links .report-link { flex: 1; }
+.detail-links #share-btn { color: var(--primary); }
+
+/* ---------- онбординг (FR-01) ---------- */
+.onboarding { padding: 32px 22px calc(20px + env(safe-area-inset-bottom)); justify-content: center; gap: 4px; }
+.onb-art { display: flex; gap: 10px; align-items: center; color: var(--primary); margin-bottom: 14px; }
+.onb-art svg:last-child { color: var(--wc); }
+.onb-art svg { width: 34px; height: 34px; }
+.onboarding h1 { font-size: 27px; line-height: 1.15; margin-bottom: 8px; }
+.onb-text { color: var(--text-muted); font-size: 14.5px; margin: 0 0 20px; }
+.onb-block { margin-bottom: 16px; }
+.onb-block .label { font-size: 12.5px; font-weight: 600; color: var(--text-muted); margin-bottom: 7px; }
+.onb-block .lang-grid { padding: 0; }
+.onb-geo { display: flex; gap: 11px; align-items: flex-start; background: var(--surface-2); border-radius: var(--radius); padding: 14px; }
+.onb-geo svg { color: var(--primary); flex: none; }
+.onb-geo p { margin: 0; font-size: 13.5px; color: var(--text-muted); }
+.onb-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.onb-actions .btn-primary { width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.onb-actions .btn-ghost { color: var(--text-muted); font-weight: 600; padding: 12px; }
+
+/* ---------- тост ---------- */
+.toast {
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: 92px; z-index: 800;
+  background: var(--navy); color: var(--bg); font-size: 13.5px; font-weight: 500;
+  padding: 10px 16px; border-radius: 999px; box-shadow: var(--shadow); max-width: 90%;
+}
+:root[data-theme='dark'] .toast { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
 
 @media (min-width: 500px) {
   #app { border-left: 1px solid var(--border); border-right: 1px solid var(--border); }

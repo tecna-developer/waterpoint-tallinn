@@ -1,5 +1,6 @@
 // Кеш оболочки приложения (FR-08: офлайн-доступ к списку/карточкам; тайлы карт не кешируем)
-const CACHE = 'wpt-shell-v1';
+// версию поднимаем при каждом релизе — иначе установленное PWA живёт на старой оболочке
+const CACHE = 'wpt-shell-v2';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', './index.html'])).then(() => self.skipWaiting()));

@@ -12,6 +12,12 @@ const dict = {
   search_points: { et: 'Veevõtukohad', en: 'Water points', ru: 'Точки' },
   search_addresses: { et: 'Aadressid', en: 'Addresses', ru: 'Адреса' },
 
+  // FR-16: фильтр по типу точки. Подписи не смешивают категории (§7.2).
+  cat_all: { et: 'Kõik', en: 'All', ru: 'Все' },
+  cat_water_tap: { et: 'Vesi', en: 'Water', ru: 'Вода' },
+  cat_public_toilet: { et: 'Tualetid', en: 'Toilets', ru: 'Туалеты' },
+  filters_category: { et: 'Punkti tüüp', en: 'Point type', ru: 'Тип точки' },
+
   chip_all: { et: 'Kõik', en: 'All', ru: 'Все' },
   chip_available: { et: 'Praegu avatud', en: 'Available now', ru: 'Доступно сейчас' },
   chip_animals: { et: 'Loomadele', en: 'Dog friendly', ru: 'Для животных' },
@@ -54,6 +60,33 @@ const dict = {
   detail_type: { et: 'Tüüp', en: 'Type', ru: 'Тип' },
   walk_min: { et: '{n} min', en: '{n} min', ru: '{n} мин' },
 
+  // §6.2: источник и дата проверки обязательны для каждой точки
+  detail_source: { et: 'Andmeallikas', en: 'Data source', ru: 'Источник данных' },
+  detail_source_water: { et: 'Tallinna GIS — avalikud veevõtukohad', en: 'Tallinn GIS — public water taps', ru: 'Tallinn GIS — общественные краны' },
+  detail_source_toilet: { et: 'Tallinna GIS — avalikud tualetid', en: 'Tallinn GIS — public toilets', ru: 'Tallinn GIS — общественные туалеты' },
+  detail_source_open: { et: 'Ava allikas', en: 'Open source', ru: 'Открыть источник' },
+
+  // FR-15: карточка туалета
+  toilet_unnamed: { et: 'Avalik tualett', en: 'Public toilet', ru: 'Общественный туалет' },
+  toilet_kind: { et: 'Tüüp', en: 'Type', ru: 'Тип' },
+  toilet_kind_stationary: { et: 'Statsionaarne', en: 'Permanent', ru: 'Стационарный' },
+  toilet_kind_temporary: { et: 'Ajutine', en: 'Temporary', ru: 'Временный' },
+  toilet_until: { et: 'kuni {date}', en: 'until {date}', ru: 'до {date}' },
+  // без завершающей точки: русская дата уже оканчивается на «г.»
+  toilet_temporary_note: { et: 'Ajutine tualett — linn eemaldab selle {date}.', en: 'Temporary toilet — the city removes it on {date}.', ru: 'Временный туалет — город демонтирует его {date}' },
+  toilet_hours: { et: 'Lahtiolekuajad', en: 'Opening hours', ru: 'Часы работы' },
+  toilet_fee: { et: 'Tasu', en: 'Fee', ru: 'Платность' },
+  toilet_free: { et: 'Tasuta', en: 'Free', ru: 'Бесплатно' },
+  toilet_paid: { et: 'Tasuline', en: 'Paid', ru: 'Платно' },
+  toilet_accessibility: { et: 'Ligipääsetavus', en: 'Accessibility', ru: 'Доступность' },
+  // §7.2, дословная микрокопия ТЗ
+  no_data: { et: 'Kinnitatud andmed puuduvad. Kontrolli kohapeal.', en: 'No confirmed data. Please check on site.', ru: 'Нет подтверждённых данных. Проверьте на месте.' },
+  no_data_short: { et: 'Andmed puuduvad', en: 'No data', ru: 'Нет данных' },
+
+  // FR-13
+  share_point: { et: 'Jaga kohta', en: 'Share point', ru: 'Поделиться точкой' },
+  share_copied: { et: 'Link on kopeeritud', en: 'Link copied', ru: 'Ссылка скопирована' },
+
   saved_title: { et: 'Lemmikud', en: 'Saved', ru: 'Избранное' },
   saved_count: { et: '{n} kohta', en: '{n} points', ru: '{n} точки' },
   saved_empty_title: { et: 'Lemmikuid pole veel', en: 'No favorites yet', ru: 'Пока нет избранного' },
@@ -78,6 +111,12 @@ const dict = {
   report_cat_no_access: { et: 'Ligipääs puudub', en: 'No access', ru: 'Нет доступа' },
   report_cat_wrong_point: { et: 'Vale asukoht', en: 'Wrong location', ru: 'Неверная точка' },
   report_cat_other: { et: 'Muu', en: 'Other', ru: 'Другое' },
+  // FR-17 / §6.3: у туалетов свой набор проблем
+  report_cat_wc_closed: { et: 'Suletud', en: 'Closed', ru: 'Закрыто' },
+  report_cat_wc_dirty: { et: 'Määrdunud / kahjustatud', en: 'Dirty / damaged', ru: 'Грязно / повреждено' },
+  report_cat_wc_hours: { et: 'Valed lahtiolekuajad', en: 'Wrong opening hours', ru: 'Неверные часы работы' },
+  report_cat_wc_location: { et: 'Vale asukoht', en: 'Wrong location', ru: 'Неверная локация' },
+  report_cat_wc_gone: { et: 'Seda enam ei ole', en: 'No longer exists', ru: 'Больше не существует' },
   report_comment: { et: 'Kommentaar', en: 'Comment', ru: 'Комментарий' },
   report_comment_ph: { et: 'Kirjelda probleemi…', en: 'Describe the problem…', ru: 'Опишите проблему…' },
   report_contact: { et: 'Kontakt (valikuline)', en: 'Contact (optional)', ru: 'Контакт (по желанию)' },
@@ -103,11 +142,46 @@ const dict = {
   back: { et: 'Tagasi', en: 'Back', ru: 'Назад' },
   close: { et: 'Sulge', en: 'Close', ru: 'Закрыть' },
   locate_me: { et: 'Minu asukoht', en: 'My location', ru: 'Моё местоположение' },
-  distance_from_search: { et: 'otsingust', en: 'from search', ru: 'от точки поиска' }
+  distance_from_search: { et: 'otsingust', en: 'from search', ru: 'от точки поиска' },
+
+  // ---- онбординг (FR-01, §7.1): объяснение до системного запроса ----
+  onb_title: { et: 'Vesi ja tualett läheduses', en: 'Water and toilets nearby', ru: 'Вода и туалеты рядом' },
+  onb_text: { et: 'Leia Tallinna avalikud joogiveekraanid ja avalikud tualetid, vaata staatust ja lase end kohale juhatada.', en: 'Find public drinking water taps and public toilets in Tallinn, check their status and get directions.', ru: 'Найдите общественные питьевые краны и общественные туалеты Таллина, проверьте статус и постройте маршрут.' },
+  onb_lang: { et: 'Keel', en: 'Language', ru: 'Язык' },
+  // §7.2, дословная микрокопия ТЗ
+  onb_geo: { et: 'Luba juurdepääs asukohale, et leiaksime lähima kraani. Me ei salvesta sinu asukohta ilma vajaduseta.', en: 'Allow location access so we can find the nearest tap. We do not store your location unless needed.', ru: 'Разрешите доступ к местоположению, чтобы мы нашли ближайший кран. Мы не сохраняем вашу геолокацию без необходимости.' },
+  onb_allow: { et: 'Luba asukoht', en: 'Allow location', ru: 'Разрешить геолокацию' },
+  onb_skip: { et: 'Jäta vahele', en: 'Skip', ru: 'Пропустить' },
+
+  // ---- ручной выбор точки отсчёта (FR-01, надёжность §8) ----
+  pick_hint: { et: 'Puuduta kaarti, et määrata lähtepunkt.', en: 'Tap the map to set your starting point.', ru: 'Нажмите на карту, чтобы задать точку отсчёта.' },
+  pick_done: { et: 'Lähtepunkt on kaardil määratud', en: 'Starting point set on the map', ru: 'Точка отсчёта задана на карте' },
+  pick_map_point: { et: 'Valitud koht kaardil', en: 'Chosen map point', ru: 'Выбранная точка на карте' },
+
+  // ---- сезонность и экология (§7.2) ----
+  season_warning: { et: 'Välikraanid töötavad tavaliselt soojal hooajal. Kontrolli staatust enne teele asumist.', en: 'Outdoor taps usually work in the warm season. Check the status before you set off.', ru: 'Наружные краны обычно работают в тёплый сезон. Проверьте статус перед маршрутом.' },
+  eco_title: { et: 'Vähem plasti', en: 'Less plastic', ru: 'Меньше пластика' },
+  eco_text: { et: 'Täida pudel uuesti — vähem plasti, rohkem puhast vett linnas.', en: 'Refill your bottle — less plastic, more clean water in the city.', ru: 'Наполните бутылку повторно — меньше пластика, больше чистой воды в городе.' },
+
+  // ---- легенда карты (§7.1, §7.2) ----
+  legend_title: { et: 'Legend', en: 'Legend', ru: 'Легенда' },
+  legend_show: { et: 'Näita legendi', en: 'Show legend', ru: 'Показать легенду' },
+  legend_layers: { et: 'Kihid', en: 'Layers', ru: 'Слои' },
+  legend_statuses: { et: 'Staatused', en: 'Statuses', ru: 'Статусы' }
 };
 
 const FALLBACK = 'en';
-let lang = localStorage.getItem('wpt_lang') || 'ru';
+
+// FR-11: язык подхватывается из настроек устройства, дальше решает ручной выбор.
+function detectLang() {
+  for (const tag of navigator.languages || [navigator.language || '']) {
+    const code = String(tag).slice(0, 2).toLowerCase();
+    if (code === 'et' || code === 'ru' || code === 'en') return code;
+  }
+  return FALLBACK;
+}
+
+let lang = localStorage.getItem('wpt_lang') || detectLang();
 
 export function getLang() { return lang; }
 

@@ -1,11 +1,13 @@
 {
   "version": "0.0.1",
+  "autoPort": true,
   "configurations": [
     {
-      "name": "wpt-dev",
+      "name": "waterpoint-dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "--port", "5183", "--strictPort"],
-      "port": 5183
+      "runtimeArgs": ["run", "dev"],
+      "port": 5173,
+      "autoPort": true
     }
   ]
 }

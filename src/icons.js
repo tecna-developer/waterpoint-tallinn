@@ -28,36 +28,65 @@ export const icons = {
   bottle: s('<path d="M10 3h4M10.5 3v3L9 8.5V20a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V8.5L13.5 6V3"/><path d="M9 13h6"/>'),
   refresh: s('<path d="M20 8A8.5 8.5 0 0 0 5 6.5L4 8M4 16a8.5 8.5 0 0 0 15 1.5l1-1.5"/><path d="M4 4v4h4M20 20v-4h-4"/>'),
   info: s('<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.8v.1"/>'),
-  check: s('<path d="m5 13 4 4L19 7"/>')
+  check: s('<path d="m5 13 4 4L19 7"/>'),
+  // FR-14: туалеты — своя иконка, ни в чём не похожая на каплю
+  wc: s('<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M8 9v6M6.5 9l1.5 3 1.5-3M13.5 9v6M13.5 9c2.5 0 2.5 3 0 3h.4l1.6 3"/>'),
+  toiletKind: s('<path d="M6 4h9a3 3 0 0 1 0 6H6z"/><path d="M6 10v7a3 3 0 0 0 3 3h4"/><path d="M18 14v6"/>'),
+  euro: s('<circle cx="12" cy="12" r="9"/><path d="M15.5 8.6a4.2 4.2 0 0 0-6.3 3.4 4.2 4.2 0 0 0 6.3 3.4M7.6 11h5M7.6 13.2h5"/>'),
+  accessible: s('<circle cx="13" cy="4.6" r="1.7"/><path d="M9.5 8.2 13 9.4V13h3.2l2.3 5"/><path d="M13.4 13a4.8 4.8 0 1 1-4.6 5.6"/>'),
+  share: s('<circle cx="17.5" cy="5.8" r="2.6"/><circle cx="6.5" cy="12" r="2.6"/><circle cx="17.5" cy="18.2" r="2.6"/><path d="m8.9 10.8 6.3-3.6M8.9 13.2l6.3 3.6"/>'),
+  leaf: s('<path d="M20 4C10 4 4.5 8 4.5 14.5A5.5 5.5 0 0 0 10 20c6.5 0 10-5.5 10-16z"/><path d="M17 7C11.5 9 8.5 13 7 19"/>')
 };
 
-// Маркер: капля с глифом статуса — цвет + форма глифа (не только цвет, WCAG).
-export function markerSvg(status, selected) {
-  const colors = {
-    available: '#2d9cdb',
-    seasonal_closed: '#90a0b4',
-    reported_issue: '#f2994a',
-    temporarily_unavailable: '#eb5757',
-    unknown: '#90a0b4'
-  };
-  const glyphs = {
-    available: '<path d="m12 16 2.5 2.5 5.5-5.5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
-    seasonal_closed: '<path d="M16 11.5v6M13 14.5h6" stroke="#fff" stroke-width="2" stroke-linecap="round" transform="rotate(45 16 14.5)"/>',
-    reported_issue: '<path d="M16 10.5v4.5M16 17.6v.1" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>',
-    temporarily_unavailable: '<path d="M13.5 12l5 5M18.5 12l-5 5" stroke="#fff" stroke-width="2" stroke-linecap="round"/>',
-    unknown: '<path d="M14 12.2a2 2 0 1 1 2.4 2.6c-.4.2-.4.7-.4 1.2M16 18.2v.1" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round"/>'
-  };
+// Цвет доступной точки задаёт категория, остальные статусы — общая шкала.
+const CATEGORY_COLOR = { water_tap: '#2d9cdb', public_toilet: '#3d8f6d' };
+const STATUS_COLOR = {
+  seasonal_closed: '#90a0b4',
+  reported_issue: '#f2994a',
+  temporarily_unavailable: '#eb5757',
+  unknown: '#90a0b4'
+};
+
+// Силуэты: капля = вода, скруглённый пин с подписью WC = туалет.
+// Категория читается по форме, статус — по цвету и глифу (не только цвет, WCAG).
+const BODY = {
+  water_tap: 'M16 2C23 9.5 26 14 26 19a10 10 0 0 1-20 0c0-5 3-9.5 10-17z',
+  public_toilet: 'M11 2h10a6 6 0 0 1 6 6v9a6 6 0 0 1-6 6h-3l-2 7-2-7h-3a6 6 0 0 1-6-6V8a6 6 0 0 1 6-6z'
+};
+
+const STATUS_GLYPH = {
+  seasonal_closed: '<path d="M16 11.5v6M13 14.5h6" stroke="#fff" stroke-width="2" stroke-linecap="round" transform="rotate(45 16 14.5)"/>',
+  reported_issue: '<path d="M16 10.5v4.5M16 17.6v.1" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>',
+  temporarily_unavailable: '<path d="M13.5 12l5 5M18.5 12l-5 5" stroke="#fff" stroke-width="2" stroke-linecap="round"/>',
+  unknown: '<path d="M14 12.2a2 2 0 1 1 2.4 2.6c-.4.2-.4.7-.4 1.2M16 18.2v.1" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round"/>'
+};
+
+// Опознавательный знак категории — виден, когда точка доступна и статусный глиф не нужен.
+const CATEGORY_GLYPH = {
+  water_tap: '<path d="m12 16 2.5 2.5 5.5-5.5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+  public_toilet: '<text x="16" y="9.6" text-anchor="middle" font-size="9.5" font-weight="700" font-family="Inter, system-ui, sans-serif" fill="#fff">WC</text>'
+};
+
+export function markerSvg(category, status, selected) {
   const size = selected ? 44 : 32;
-  const c = colors[status] || colors.unknown;
+  const cat = BODY[category] ? category : 'water_tap';
+  const ok = status === 'available';
+  const fill = ok ? CATEGORY_COLOR[cat] : (STATUS_COLOR[status] || STATUS_COLOR.unknown);
+  const glyph = ok ? CATEGORY_GLYPH[cat] : STATUS_GLYPH[status] || STATUS_GLYPH.unknown;
+  // у туалета статусный глиф встаёт в центр корпуса, у капли — ниже, в её широкую часть
+  const shift = cat === 'public_toilet' && !ok ? -2 : 3;
   return `<svg width="${size}" height="${size}" viewBox="0 0 32 32">
-    <path d="M16 2C23 9.5 26 14 26 19a10 10 0 0 1-20 0c0-5 3-9.5 10-17z" fill="${c}" stroke="#fff" stroke-width="${selected ? 2.5 : 1.5}"/>
-    <g transform="translate(0 3)">${glyphs[status] || glyphs.unknown}</g>
+    <path d="${BODY[cat]}" fill="${fill}" stroke="#fff" stroke-width="${selected ? 2.5 : 1.5}"/>
+    <g transform="translate(0 ${shift})">${glyph}</g>
   </svg>`;
 }
 
-// Заглушка фото: источник не даёт изображений — честная иллюстрация.
-export function thumbSvg(sizeClass = '') {
-  return `<div class="thumb ${sizeClass}" aria-hidden="true">
-    <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" opacity="0.85"><path d="M12 3s6 6.3 6 10.2A6 6 0 0 1 6 13.2C6 9.3 12 3 12 3z"/></svg>
+// Заглушка фото: источник не даёт изображений — честная иллюстрация по категории.
+export function thumbSvg(category = 'water_tap', sizeClass = '') {
+  const art = category === 'public_toilet'
+    ? '<path d="M4 4h16v16H4z" opacity="0"/><path d="M8.5 8v8M6.7 8l1.8 4 1.8-4M14.4 8v8M14.4 8c2.6 0 2.6 3.2 0 3.2h.4l1.8 4.8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>'
+    : '<path d="M12 3s6 6.3 6 10.2A6 6 0 0 1 6 13.2C6 9.3 12 3 12 3z"/>';
+  return `<div class="thumb ${category === 'public_toilet' ? 'wc' : ''} ${sizeClass}" aria-hidden="true">
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" opacity="0.85">${art}</svg>
   </div>`;
 }
