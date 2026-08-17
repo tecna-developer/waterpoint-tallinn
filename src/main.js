@@ -854,12 +854,25 @@ function renderSettingsView() {
 function openFilterSheet() {
   const overlay = document.createElement('div');
   overlay.className = 'overlay';
+  // тот же паттерн доступности, что и у формы жалобы (openReportSheet): фокус уходит
+  // в шторку при открытии, Escape и клик по фону закрывают, закрытие возвращает фокус
+  // на кнопку-триггер, а не роняет его в никуда.
+  const opener = document.activeElement;
+  const close = () => {
+    overlay.remove();
+    if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+  };
   const radiusOpts = [[null, t('filters_radius_any')], [1000, '≤ 1 км'], [2000, '≤ 2 км'], [5000, '≤ 5 км']];
   const typeOpts = [[null, t('chip_all')], ['outdoor', t('filters_type_outdoor')], ['indoor', t('filters_type_indoor')]];
   const catOpts = [['all', t('cat_all')], ['water_tap', t('cat_water_tap')], ['public_toilet', t('cat_public_toilet')]];
   const showAnimals = hasAny(p => p.dog_bowl === true);
   const showAvailable = hasAny(p => computeStatus(p) === 'available');
   const showPointType = hasAny(p => p.point_type === 'indoor');
+  // draw() полностью пересоздаёт innerHTML шторки на каждый клик по чипу (см. ниже) —
+  // без этого фокус при каждом таком клике проваливался на <body>, и клавиатурный
+  // пользователь терял место в шторке после первого же взаимодействия, не только
+  // при открытии/закрытии. Восстанавливаем фокус на «том же» (пересозданном) элементе.
+  const RESTORE_ATTRS = ['data-c', 'data-q', 'data-r', 'data-t', 'data-f', 'id'];
 
   function count(tmp) {
     const save = { c: ui.category, q: ui.quick, r: ui.radius, t: ui.point_type, f: ui.favoritesOnly };
@@ -872,8 +885,12 @@ function openFilterSheet() {
   let tmp = { category: ui.category, quick: ui.quick, radius: ui.radius, type: ui.point_type, fav: ui.favoritesOnly };
 
   function draw() {
+    const focused = overlay.contains(document.activeElement) ? document.activeElement : null;
+    const restoreAttr = focused && RESTORE_ATTRS.find(a => a === 'id' ? focused.id : focused.hasAttribute(a));
+    const restoreVal = restoreAttr && (restoreAttr === 'id' ? focused.id : focused.getAttribute(restoreAttr));
+
     overlay.innerHTML = `
-      <div class="sheet" role="dialog" aria-label="${t('filters_title')}">
+      <div class="sheet" role="dialog" aria-modal="true" aria-label="${t('filters_title')}">
         <div class="grabber"></div>
         <h2>${t('filters_title')}</h2>
         <div class="filter-section">
@@ -913,12 +930,19 @@ function openFilterSheet() {
     overlay.querySelector('#f-apply').addEventListener('click', () => {
       ui.category = tmp.category; ui.quick = tmp.quick; ui.radius = tmp.radius;
       ui.point_type = tmp.type; ui.favoritesOnly = tmp.fav;
-      overlay.remove(); render();
+      close(); render();
     });
+
+    if (restoreAttr) {
+      const sel = restoreAttr === 'id' ? '#' + CSS.escape(restoreVal) : `[${restoreAttr}="${CSS.escape(restoreVal)}"]`;
+      overlay.querySelector(sel)?.focus();
+    }
   }
   draw();
-  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  overlay.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
   app.appendChild(overlay);
+  overlay.querySelector('[data-c]')?.focus();
 }
 
 // ---------- отчёт о проблеме (FR-09, FR-17) ----------
