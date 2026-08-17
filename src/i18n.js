@@ -44,6 +44,9 @@ const dict = {
 
   detail_description: { et: 'Kirjeldus', en: 'Description', ru: 'Описание' },
   detail_no_description: { et: 'Kirjeldus puudub. Ametlik allikas: avalik veevõtukoht.', en: 'No description yet. Official source: public water point.', ru: 'Описания пока нет. Официальный источник: общественная точка воды.' },
+  // description у туалетов тоже всегда null (нет данных в источнике) — заглушка
+  // не может называть их «точкой воды», как это было общей строкой для обеих категорий
+  detail_no_description_toilet: { et: 'Kirjeldus puudub. Ametlik allikas: avalik tualett.', en: 'No description yet. Official source: public toilet.', ru: 'Описания пока нет. Официальный источник: общественный туалет.' },
   detail_dog_bowl: { et: 'Loomadele', en: 'Dog bowl', ru: 'Для животных' },
   detail_bottle: { et: 'Pudeli täitmine', en: 'Bottle refill', ru: 'Набор бутылок' },
   detail_yes: { et: 'Jah', en: 'Yes', ru: 'Да' },
@@ -107,7 +110,10 @@ const dict = {
   settings_sync_never: { et: 'Kasutusel on kaasapandud koopia', en: 'Using bundled snapshot', ru: 'Используется встроенная копия' },
   settings_sync_fail: { et: 'Allikas pole kättesaadav — näitame viimast õnnestunud koopiat.', en: 'Source unreachable — showing last successful copy.', ru: 'Источник недоступен — показана последняя успешная копия.' },
   settings_about: { et: 'Projektist', en: 'About', ru: 'О проекте' },
-  settings_about_text: { et: 'WaterPoint Tallinn on sõltumatu rakendus avalike joogiveekohtade leidmiseks. Andmete allikas: Tallinna GIS (kiht „Avalikud veevõtukohad“). Rakendus ei ole Tallinna Vesi ametlik toode.', en: 'WaterPoint Tallinn is an independent app for finding public drinking water points. Data source: Tallinn GIS (layer “Avalikud veevõtukohad”). The app is not an official Tallinna Vesi product.', ru: 'WaterPoint Tallinn — независимое приложение для поиска общественных точек питьевой воды. Источник данных: Tallinn GIS (слой «Avalikud veevõtukohad»). Приложение не является официальным продуктом Tallinna Vesi.' },
+  // было только про краны и только один слой GIS — молчало про туалеты и их источник,
+  // хотя это ровно половина из 174 точек в приложении (см. критику: метаданные и
+  // дисклеймеры не должны утверждать меньше, чем реально показывает продукт)
+  settings_about_text: { et: 'WaterPoint Tallinn on sõltumatu rakendus avalike joogiveekohtade ja avalike tualettide leidmiseks. Andmete allikas: Tallinna GIS (kihid „Avalikud veevõtukohad“ ja „Avalikud tualetid“). Rakendus ei ole Tallinna Vesi ametlik toode.', en: 'WaterPoint Tallinn is an independent app for finding public drinking water points and public toilets. Data source: Tallinn GIS (layers “Avalikud veevõtukohad” and “Avalikud tualetid”). The app is not an official Tallinna Vesi product.', ru: 'WaterPoint Tallinn — независимое приложение для поиска общественных точек питьевой воды и общественных туалетов. Источник данных: Tallinn GIS (слои «Avalikud veevõtukohad» и «Avalikud tualetid»). Приложение не является официальным продуктом Tallinna Vesi.' },
   settings_privacy: { et: 'Privaatsus', en: 'Privacy', ru: 'Конфиденциальность' },
   settings_privacy_text: { et: 'Täpset asukohta ei salvestata ega saadeta serverisse. Lemmikud, vahemälu ja demo-märked hoitakse ainult seadmes.', en: 'Precise location is never stored or sent to a server. Favorites, cache and demo markers live on the device only.', ru: 'Точная геолокация не сохраняется и не отправляется на сервер. Избранное, кеш и демонстрационные отметки хранятся только на устройстве.' },
   settings_demo_reports: { et: 'Demo-märked', en: 'Demo problem markers', ru: 'Демонстрационные отметки' },

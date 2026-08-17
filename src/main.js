@@ -701,7 +701,11 @@ function renderDetailView() {
         ${!isToilet && seasonalWarningActive() ? `<div class="banner info" style="margin:0 0 12px">${icons.clock} ${t('season_warning')}</div>` : ''}
         <div class="desc-card">
           <div class="label">${t('detail_description')}</div>
-          <div>${p.description ? esc(p.description) : t('detail_no_description')}</div>
+          <!-- description всегда null для обеих категорий (см. data.js) — заглушка
+               обязана называть верный тип точки; раньше карточка туалета честно
+               помеченная тегом «Туалеты» двумя строками выше говорила ниже «Официальный
+               источник: общественная точка воды» на всех 96 туалетах -->
+          <div>${p.description ? esc(p.description) : t(isToilet ? 'detail_no_description_toilet' : 'detail_no_description')}</div>
         </div>
         ${isToilet ? toiletAttrsHtml(p) : waterAttrsHtml(p)}
         <div class="source-card">
