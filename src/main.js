@@ -158,7 +158,13 @@ function requestGeo(interactive = false) {
 
 // ---------- поиск (FR-07) ----------
 let suggestTimer = null;
-async function buildSuggestions(q, box) {
+// input передаём, чтобы проверить актуальность запроса после await ниже: два разных
+// запроса, разнесённых по времени больше чем на 300 мс дебаунса (пользователь напечатал,
+// подождал, передумал, напечатал другое), уходят в сеть независимо — Nominatim не
+// гарантирует порядок ответов, и без проверки более медленный «выигрывал» гонку и
+// перезаписывал уже показанные подсказки для текста, которого в поле давно нет
+// (подтверждено: медленный ответ для «stalequery» затирал уже отрисованный «freshquery»).
+async function buildSuggestions(q, box, input) {
   const query = q.trim().toLowerCase();
   if (query.length < 2) { box.innerHTML = ''; box.hidden = true; return; }
   const dd = districts().filter(d => d.toLowerCase().includes(query));
@@ -190,6 +196,9 @@ async function buildSuggestions(q, box) {
       }
     } catch { /* офлайн/лимит — остаёмся с локальными результатами */ }
   }
+  // пользователь мог напечатать что-то другое, пока ждали Nominatim — не перетираем
+  // уже показанные (актуальные) подсказки ответом на запрос, которого в поле больше нет
+  if (input && input.value.trim().toLowerCase() !== query) return;
   if (!html) html = `<div class="hint">${t('search_hint_invalid')}</div>`;
   box.innerHTML = html;
   box.hidden = false;
@@ -235,7 +244,7 @@ function wireSearch(rootEl) {
   input.addEventListener('input', () => {
     ui.search = input.value;
     clearTimeout(suggestTimer);
-    suggestTimer = setTimeout(() => buildSuggestions(input.value, box), 300);
+    suggestTimer = setTimeout(() => buildSuggestions(input.value, box, input), 300);
   });
   rootEl.querySelector('#open-filters').addEventListener('click', openFilterSheet);
 }
