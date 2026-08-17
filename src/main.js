@@ -488,9 +488,10 @@ function renderMapView() {
   app.querySelector('#legend-close')?.addEventListener('click', toggleLegend);
 
   if (sel) {
-    app.querySelector('#map-card').addEventListener('click', () => openDetail(sel.id, 'map'));
-    app.querySelector('#map-card .go').addEventListener('click', e => {
-      e.stopPropagation();
+    // .go больше не вложен в .map-card-open — самостоятельная кнопка-сосед,
+    // stopPropagation() был нужен только против всплытия из вложенного элемента
+    app.querySelector('#map-card .map-card-open').addEventListener('click', () => openDetail(sel.id, 'map'));
+    app.querySelector('#map-card .go').addEventListener('click', () => {
       track('route_start', { point: sel.id, category: sel.category });
       window.open(routeUrl(sel), '_blank');
     });
@@ -520,17 +521,23 @@ function legendHtml() {
   </div>`;
 }
 
+// <button> не может законно содержать другой интерактивный элемент — вложенный
+// span.go с role="button" был невалиден и, что важнее, недостижим с клавиатуры
+// (role сам по себе не даёт фокуса без tabindex). map-card-open и go — две отдельные
+// кнопки-соседа внутри неинтерактивного .map-card, а не одна в другой.
 function mapCardHtml(p) {
   return `
-  <button class="map-card" id="map-card">
-    ${thumbSvg(p.category)}
-    <div class="info">
-      ${statusBadge(p)}
-      <div class="title">${esc(pointName(p))}</div>
-      <div class="meta">${p.dist != null ? `${icons.walk.replace('width="22" height="22"', 'width="13" height="13"')} ${fmtDist(p.dist)} • ${t('walk_min', { n: walkMinutes(p.dist) })}` : esc(p.district || '')}</div>
-    </div>
-    <span class="go" aria-label="${t('detail_route')}">${icons.nav}</span>
-  </button>`;
+  <div class="map-card" id="map-card">
+    <button class="map-card-open">
+      ${thumbSvg(p.category)}
+      <div class="info">
+        ${statusBadge(p)}
+        <div class="title">${esc(pointName(p))}</div>
+        <div class="meta">${p.dist != null ? `${icons.walk.replace('width="22" height="22"', 'width="13" height="13"')} ${fmtDist(p.dist)} • ${t('walk_min', { n: walkMinutes(p.dist) })}` : esc(p.district || '')}</div>
+      </div>
+    </button>
+    <button class="go" aria-label="${t('detail_route')}">${icons.nav}</button>
+  </div>`;
 }
 
 // ---------- список (FR-04) ----------
@@ -554,19 +561,21 @@ function renderListView() {
     </div>`;
   } else {
     body = `<div class="cards">` + pts.map(p => `
-      <button class="card" data-open="${p.id}">
-        ${thumbSvg(p.category)}
-        <div class="info">
-          <div class="title">${esc(pointName(p))}</div>
-          <div class="addr">${esc(pointPlace(p) || p.code || '')}</div>
-          <div class="meta">
-            ${p.dist != null ? `<span class="dist">${icons.walk.replace('width="22" height="22"', 'width="13" height="13"')} ${fmtDist(p.dist)}</span>` : ''}
-            ${statusBadge(p)}
-            <span class="cat-tag ${p.category}">${t('cat_' + p.category)}</span>
+      <div class="card">
+        <button class="card-open" data-open="${p.id}">
+          ${thumbSvg(p.category)}
+          <div class="info">
+            <div class="title">${esc(pointName(p))}</div>
+            <div class="addr">${esc(pointPlace(p) || p.code || '')}</div>
+            <div class="meta">
+              ${p.dist != null ? `<span class="dist">${icons.walk.replace('width="22" height="22"', 'width="13" height="13"')} ${fmtDist(p.dist)}</span>` : ''}
+              ${statusBadge(p)}
+              <span class="cat-tag ${p.category}">${t('cat_' + p.category)}</span>
+            </div>
           </div>
-        </div>
-        <span class="heart ${favs.has(p.id) ? 'on' : ''}" data-fav="${p.id}" role="button" aria-label="${t('nav_saved')}">${favs.has(p.id) ? icons.heartFill : icons.heart}</span>
-      </button>`).join('') + `</div>`;
+        </button>
+        <button class="heart ${favs.has(p.id) ? 'on' : ''}" data-fav="${p.id}" aria-label="${t('fav_toggle')}" aria-pressed="${favs.has(p.id)}">${favs.has(p.id) ? icons.heartFill : icons.heart}</button>
+      </div>`).join('') + `</div>`;
   }
 
   viewRoot.innerHTML = `
@@ -594,8 +603,9 @@ function renderListView() {
 }
 
 function wireCards(rootEl) {
-  rootEl.querySelectorAll('[data-fav]').forEach(h => h.addEventListener('click', e => {
-    e.stopPropagation();
+  // .heart — сосед .card-open, а не вложенный элемент; stopPropagation() от всплытия
+  // из родителя больше не нужен (см. комментарий у mapCardHtml про ту же правку).
+  rootEl.querySelectorAll('[data-fav]').forEach(h => h.addEventListener('click', () => {
     toggleFavorite(h.dataset.fav);
     render();
   }));
@@ -743,16 +753,18 @@ function renderSavedView() {
   const pts = withDistances(state.points.filter(p => favs.has(p.id)).map(p => ({ ...p, status: computeStatus(p) })));
   const body = pts.length
     ? `<div class="cards">` + pts.map(p => `
-      <button class="card" data-open="${p.id}">
-        ${thumbSvg(p.category)}
-        <div class="info">
-          <div class="title">${esc(pointName(p))}</div>
-          <div class="addr">${esc(pointPlace(p))}</div>
-          <div class="meta">${p.dist != null ? `<span class="dist">${fmtDist(p.dist)}</span>` : ''} ${statusBadge(p)}
-            <span class="cat-tag ${p.category}">${t('cat_' + p.category)}</span></div>
-        </div>
-        <span class="heart on" data-fav="${p.id}" role="button" aria-label="${t('nav_saved')}">${icons.heartFill}</span>
-      </button>`).join('') + `</div>`
+      <div class="card">
+        <button class="card-open" data-open="${p.id}">
+          ${thumbSvg(p.category)}
+          <div class="info">
+            <div class="title">${esc(pointName(p))}</div>
+            <div class="addr">${esc(pointPlace(p))}</div>
+            <div class="meta">${p.dist != null ? `<span class="dist">${fmtDist(p.dist)}</span>` : ''} ${statusBadge(p)}
+              <span class="cat-tag ${p.category}">${t('cat_' + p.category)}</span></div>
+          </div>
+        </button>
+        <button class="heart on" data-fav="${p.id}" aria-label="${t('fav_toggle')}" aria-pressed="true">${icons.heartFill}</button>
+      </div>`).join('') + `</div>`
     : `<div class="state-box"><div class="icon">🤍</div><h3>${t('saved_empty_title')}</h3><div>${t('saved_empty_text')}</div></div>`;
 
   viewRoot.innerHTML = `

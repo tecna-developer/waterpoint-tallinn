@@ -91,6 +91,9 @@ const dict = {
   share_copied: { et: 'Link on kopeeritud', en: 'Link copied', ru: 'Ссылка скопирована' },
 
   saved_title: { et: 'Lemmikud', en: 'Saved', ru: 'Избранное' },
+  // отдельный accessible-name для кнопки-переключателя (не «Избранное» как раздел —
+  // это действие; состояние on/off сообщает aria-pressed, см. wireCards в main.js)
+  fav_toggle: { et: 'Lemmikutesse', en: 'Add to favorites', ru: 'В избранное' },
   saved_count: { et: '{n} kohta', en: '{n} points', ru: '{n} точки' },
   saved_empty_title: { et: 'Lemmikuid pole veel', en: 'No favorites yet', ru: 'Пока нет избранного' },
   saved_empty_text: { et: 'Puuduta südant kaardil või nimekirjas — koht salvestatakse seadmesse ja on saadaval võrguühenduseta.', en: 'Tap the heart on the map or in the list — points are stored on the device and available offline.', ru: 'Нажмите на сердечко на карте или в списке — точка сохранится на устройстве и будет доступна офлайн.' },

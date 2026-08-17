@@ -154,6 +154,9 @@ input, textarea { font-family: inherit; font-size: 15px; color: var(--text); }
   background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow);
   display: flex; align-items: center; gap: 10px; padding: 10px;
 }
+/* .map-card сам не кнопка — открытие карточки и «поехали» два соседних <button>,
+   а не один вложенный в другой (невалидный HTML и недоступный с клавиатуры вариант) */
+.map-card-open { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; text-align: left; }
 .map-card .thumb { width: 56px; height: 56px; border-radius: 12px; flex: none; }
 .map-card .info { flex: 1; min-width: 0; }
 .map-card .title { font-family: var(--font-heading); font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -189,8 +192,11 @@ input, textarea { font-family: inherit; font-size: 15px; color: var(--text); }
   display: flex; gap: 12px; align-items: center;
   background: var(--surface); border-radius: var(--radius);
   padding: 10px; box-shadow: 0 1px 6px rgba(27,38,59,.07);
-  border: 1px solid var(--border); text-align: left; width: 100%;
+  border: 1px solid var(--border); width: 100%;
 }
+/* .card сам не кнопка — открытие точки и избранное два соседних <button>, не один
+   вложенный в другой (был span[role=button] без tabindex, недостижимый с клавиатуры) */
+.card-open { display: flex; gap: 12px; align-items: center; flex: 1; min-width: 0; text-align: left; }
 .card .thumb { width: 64px; height: 64px; border-radius: 12px; flex: none; }
 .card .info { flex: 1; min-width: 0; }
 .card .title { font-family: var(--font-heading); font-weight: 700; font-size: 15.5px; }
