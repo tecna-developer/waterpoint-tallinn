@@ -250,11 +250,17 @@ function wireSearch(rootEl) {
 }
 
 // ---------- переключатель категории (FR-16) ----------
+// Было role="tablist"/role="tab" — невыполненный контракт ARIA: скринридер объявляет
+// «вкладка 1 из 3» и обещает управление стрелками, которого не было; не было и панелей
+// (ни role="tabpanel", ни aria-controls), а все кнопки сидели в tab-порядке вместо
+// roving tabindex. По сути это не вкладки: контрол фильтрует ту же карту/список на
+// месте. Честнее группа кнопок-переключателей с aria-pressed — она не обещает лишнего
+// и не требует стрелок.
 function categorySegHtml() {
   const opts = [['all', 'cat_all'], ['water_tap', 'cat_water_tap'], ['public_toilet', 'cat_public_toilet']];
-  return `<div class="cat-seg" role="tablist" aria-label="${t('filters_category')}">` +
+  return `<div class="cat-seg" role="group" aria-label="${t('filters_category')}">` +
     opts.map(([v, key]) => `
-      <button class="seg-opt ${ui.category === v ? 'on' : ''}" data-cat="${v}" role="tab" aria-selected="${ui.category === v}">
+      <button class="seg-opt ${ui.category === v ? 'on' : ''}" data-cat="${v}" aria-pressed="${ui.category === v}">
         ${v === 'water_tap' ? icons.dropFill.replace('width="22" height="22"', 'width="14" height="14"') : ''}
         ${v === 'public_toilet' ? icons.wc.replace('width="22" height="22"', 'width="14" height="14"') : ''}
         ${t(key)}
@@ -275,12 +281,14 @@ function chipsHtml() {
   // «для животных» и indoor скрыты, пока источник не даёт таких признаков
   const showAnimals = hasAny(p => p.dog_bowl === true);
   const showAvailable = hasAny(p => computeStatus(p) === 'available');
+  // aria-pressed: включённость чипа передаётся не только цветом (.on), иначе для
+  // скринридера все чипы выглядят одинаково и выбранный фильтр никак не озвучен
   return `
-  <div class="chips">
-    <button class="chip ${ui.quick === 'all' ? 'on' : ''}" data-quick="all">${t('chip_all')}</button>
-    ${showAvailable ? `<button class="chip ${ui.quick === 'available' ? 'on' : ''}" data-quick="available">${t('chip_available')}</button>` : ''}
-    ${showAnimals ? `<button class="chip ${ui.quick === 'animals' ? 'on' : ''}" data-quick="animals">${t('chip_animals')}</button>` : ''}
-    <button class="chip ${ui.favoritesOnly ? 'on' : ''}" id="chip-fav">${t('chip_favorites')}</button>
+  <div class="chips" role="group" aria-label="${t('filters_show')}">
+    <button class="chip ${ui.quick === 'all' ? 'on' : ''}" data-quick="all" aria-pressed="${ui.quick === 'all'}">${t('chip_all')}</button>
+    ${showAvailable ? `<button class="chip ${ui.quick === 'available' ? 'on' : ''}" data-quick="available" aria-pressed="${ui.quick === 'available'}">${t('chip_available')}</button>` : ''}
+    ${showAnimals ? `<button class="chip ${ui.quick === 'animals' ? 'on' : ''}" data-quick="animals" aria-pressed="${ui.quick === 'animals'}">${t('chip_animals')}</button>` : ''}
+    <button class="chip ${ui.favoritesOnly ? 'on' : ''}" id="chip-fav" aria-pressed="${ui.favoritesOnly}">${t('chip_favorites')}</button>
   </div>`;
 }
 
@@ -593,7 +601,7 @@ function renderListView() {
       ${searchBarHtml()}
       ${categorySegHtml()}
       <div class="chips">
-        ${showAvailable ? `<button class="chip ${ui.quick === 'available' ? 'on' : ''}" data-quick-toggle="available">${t('chip_available')}</button>` : ''}
+        ${showAvailable ? `<button class="chip ${ui.quick === 'available' ? 'on' : ''}" data-quick-toggle="available" aria-pressed="${ui.quick === 'available'}">${t('chip_available')}</button>` : ''}
       </div>
       <div class="section-head"><h2>${t('nav_list')}</h2><span class="count">${pointsCount(pts.length)}</span></div>
       ${bannersHtml()}
@@ -908,24 +916,24 @@ function openFilterSheet() {
         <h2>${t('filters_title')}</h2>
         <div class="filter-section">
           <div class="label">${t('filters_category')}</div>
-          <div class="seg">${catOpts.map(([v, l]) => `<button class="chip ${tmp.category === v ? 'on' : ''}" data-c="${v}">${l}</button>`).join('')}</div>
+          <div class="seg">${catOpts.map(([v, l]) => `<button class="chip ${tmp.category === v ? 'on' : ''}" data-c="${v}" aria-pressed="${tmp.category === v}">${l}</button>`).join('')}</div>
         </div>
         <div class="filter-section">
           <div class="label">${t('filters_show')}</div>
           <div class="seg">
-            <button class="chip ${tmp.quick === 'all' ? 'on' : ''}" data-q="all">${t('chip_all')}</button>
-            ${showAvailable ? `<button class="chip ${tmp.quick === 'available' ? 'on' : ''}" data-q="available">${t('chip_available')}</button>` : ''}
-            ${showAnimals ? `<button class="chip ${tmp.quick === 'animals' ? 'on' : ''}" data-q="animals">${t('chip_animals')}</button>` : ''}
-            <button class="chip ${tmp.fav ? 'on' : ''}" data-f="1">${t('chip_favorites')}</button>
+            <button class="chip ${tmp.quick === 'all' ? 'on' : ''}" data-q="all" aria-pressed="${tmp.quick === 'all'}">${t('chip_all')}</button>
+            ${showAvailable ? `<button class="chip ${tmp.quick === 'available' ? 'on' : ''}" data-q="available" aria-pressed="${tmp.quick === 'available'}">${t('chip_available')}</button>` : ''}
+            ${showAnimals ? `<button class="chip ${tmp.quick === 'animals' ? 'on' : ''}" data-q="animals" aria-pressed="${tmp.quick === 'animals'}">${t('chip_animals')}</button>` : ''}
+            <button class="chip ${tmp.fav ? 'on' : ''}" data-f="1" aria-pressed="${tmp.fav}">${t('chip_favorites')}</button>
           </div>
         </div>
         <div class="filter-section">
           <div class="label">${t('filters_radius')}</div>
-          <div class="seg">${radiusOpts.map(([v, l]) => `<button class="chip ${tmp.radius === v ? 'on' : ''}" data-r="${v ?? ''}">${l}</button>`).join('')}</div>
+          <div class="seg">${radiusOpts.map(([v, l]) => `<button class="chip ${tmp.radius === v ? 'on' : ''}" data-r="${v ?? ''}" aria-pressed="${tmp.radius === v}">${l}</button>`).join('')}</div>
         </div>
         ${showPointType ? `<div class="filter-section">
           <div class="label">${t('filters_type')}</div>
-          <div class="seg">${typeOpts.map(([v, l]) => `<button class="chip ${tmp.type === v ? 'on' : ''}" data-t="${v ?? ''}">${l}</button>`).join('')}</div>
+          <div class="seg">${typeOpts.map(([v, l]) => `<button class="chip ${tmp.type === v ? 'on' : ''}" data-t="${v ?? ''}" aria-pressed="${tmp.type === v}">${l}</button>`).join('')}</div>
         </div>` : ''}
         <div class="sheet-actions">
           <button class="btn-ghost" id="f-reset">${t('filters_reset')}</button>
