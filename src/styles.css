@@ -17,6 +17,9 @@
   --shadow: 0 4px 16px rgba(27, 38, 59, 0.1);
   --radius: 16px;
   --radius-sm: 12px;
+  /* Тёмный на светлом фоне и наоборот — ринг обязан читаться и на белой карточке,
+     и поверх синего активного чипа, и на тайлах карты. */
+  --focus-ring: #10233d;
   --font-heading: 'PT Serif', Georgia, 'Times New Roman', serif;
   --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
@@ -34,6 +37,7 @@
   --border: #2a3749;
   --amber-soft: #3a2c17;
   --shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --focus-ring: #f2f8ff;
 }
 
 * { box-sizing: border-box; }
@@ -66,6 +70,16 @@ h1, h2, h3 { font-family: var(--font-heading); margin: 0; }
 button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
 input, textarea { font-family: inherit; font-size: 15px; color: var(--text); }
 
+/* Единый видимый индикатор клавиатурного фокуса. Раньше кнопки полагались на контур
+   браузера по умолчанию (он хотя бы был), а поле поиска — ни на что: `.search-bar input`
+   гасил outline безусловно и ничем не заменял, так что для клавиатуры фокус в поиске
+   был полностью невидим. :focus-visible (а не :focus) — чтобы ринг не вспыхивал на
+   каждый тап мышью/пальцем. */
+:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 .view { flex: 1; overflow-y: auto; display: flex; flex-direction: column; min-height: 0; }
 .view.no-scroll { overflow: hidden; }
 /* В скролл-контейнере прямые дети не должны сжиматься: иначе на низком вьюпорте
@@ -96,7 +110,12 @@ input, textarea { font-family: inherit; font-size: 15px; color: var(--text); }
   border-radius: 24px; padding: 10px 14px; box-shadow: var(--shadow);
 }
 .search-bar svg { flex: none; color: var(--primary); }
-.search-bar input { flex: 1; border: none; outline: none; background: transparent; min-width: 0; }
+/* outline здесь больше не гасим: он был единственным индикатором фокуса для этого поля.
+   Ринг рисуем на всей строке поиска — у самого input нет ни рамки, ни фона, вокруг него
+   контур висел бы в воздухе посреди плашки. */
+.search-bar input { flex: 1; border: none; background: transparent; min-width: 0; }
+.search-bar input:focus-visible { outline: none; }
+.search-bar:has(input:focus-visible) { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
 .search-bar input::placeholder { color: var(--text-muted); }
 .search-bar .filter-btn { flex: none; color: var(--navy); display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; }
 .search-bar .filter-btn.on { color: var(--primary); background: var(--primary-soft); }
@@ -119,7 +138,10 @@ input, textarea { font-family: inherit; font-size: 15px; color: var(--text); }
   position: absolute; top: 60px; left: 0; right: 0; z-index: 650;
   padding: 0 12px; display: flex; flex-direction: column; gap: 8px;
 }
-.map-view .map-controls .chips { position: static; padding: 0; }
+/* padding даёт место кольцу :focus-visible (2px offset + 3px), отрицательный margin
+   ровно его компенсирует — положение чипов не меняется. Без этого горизонтальный
+   скроллер (overflow-x:auto делает и overflow-y:auto) срезал бы кольцо сверху и снизу. */
+.map-view .map-controls .chips { position: static; padding: 5px 2px; margin: -5px -2px; }
 .chip {
   flex: none; display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: 500;
@@ -347,7 +369,9 @@ input, textarea { font-family: inherit; font-size: 15px; color: var(--text); }
   width: 100%; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
   padding: 10px 12px; background: var(--surface); resize: vertical;
 }
-.field textarea:focus, .field input:focus { outline: none; border-color: var(--primary); }
+/* смена цвета рамки остаётся как акцент, но она одна передавала фокус только цветом —
+   ринг из :focus-visible выше теперь не гасим */
+.field textarea:focus, .field input:focus { border-color: var(--primary); }
 .consent-row { display: flex; gap: 9px; align-items: flex-start; font-size: 13px; color: var(--text-muted); margin-bottom: 14px; }
 .consent-row input { margin-top: 2px; accent-color: var(--primary); }
 .sheet-actions { display: flex; gap: 10px; }
