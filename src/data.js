@@ -1,5 +1,6 @@
 import waterSeed from './data/waterpoints.json';
 import toiletSeed from './data/toilets.json';
+import { t, localeTag } from './i18n.js';
 
 // FR-01/FR-14: два живых слоя Tallinn GIS. Сбой одного не стирает последнюю успешную
 // копию другого — каждый слой кешируется и синхронизируется независимо.
@@ -236,9 +237,13 @@ export function withDistances(points) {
     .sort((a, b) => (a.dist ?? 1e12) - (b.dist ?? 1e12));
 }
 
+// Раньше «м»/«км» были захардкожены по-русски и лезли на EN/ET экраны на каждой
+// карточке с расстоянием — единицы и десятичный разделитель идут через t()/localeTag().
 export function fmtDist(m) {
   if (m == null) return '—';
-  return m < 1000 ? Math.round(m / 10) * 10 + ' м' : (m / 1000).toFixed(1) + ' км';
+  if (m < 1000) return t('dist_m', { n: Math.round(m / 10) * 10 });
+  const km = (m / 1000).toLocaleString(localeTag(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  return t('dist_km', { n: km });
 }
 export function walkMinutes(m) { return Math.max(1, Math.round(m / 80)); }
 

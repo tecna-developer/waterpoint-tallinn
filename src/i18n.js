@@ -58,6 +58,10 @@ const dict = {
   detail_source_code: { et: 'Kood', en: 'Code', ru: 'Код' },
   detail_type: { et: 'Tüüp', en: 'Type', ru: 'Тип' },
   walk_min: { et: '{n} min', en: '{n} min', ru: '{n} мин' },
+  // fmtDist() в data.js: расстояние на каждой карточке показывало «м»/«км» независимо
+  // от языка интерфейса — на EN/ET экранах это выглядело как забытая отладочная строка.
+  dist_m: { et: '{n} m', en: '{n} m', ru: '{n} м' },
+  dist_km: { et: '{n} km', en: '{n} km', ru: '{n} км' },
 
   // §6.2: источник и дата проверки обязательны для каждой точки
   detail_source: { et: 'Andmeallikas', en: 'Data source', ru: 'Источник данных' },
@@ -186,6 +190,12 @@ function detectLang() {
 let lang = localStorage.getItem('wpt_lang') || detectLang();
 
 export function getLang() { return lang; }
+
+// BCP-47 тег для Intl/toLocaleString (даты, десятичный разделитель расстояний и т.д.) —
+// единая точка, чтобы формат чисел и дат по всему приложению не расходился с языком UI.
+export function localeTag() {
+  return lang === 'et' ? 'et-EE' : lang === 'en' ? 'en-GB' : 'ru-RU';
+}
 
 export function setLang(l) {
   lang = l;

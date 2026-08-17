@@ -1,7 +1,7 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './styles.css';
-import { t, getLang, setLang, LANGS, pointsCount } from './i18n.js';
+import { t, getLang, setLang, LANGS, pointsCount, localeTag } from './i18n.js';
 import { icons, markerSvg, thumbSvg } from './icons.js';
 import {
   state, loadCached, sync, computeStatus, withDistances, fmtDist, walkMinutes,
@@ -81,17 +81,15 @@ function hasAny(predicate) { return state.points.some(predicate); }
 // ---------- вспомогательные ----------
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-const locale = () => getLang() === 'et' ? 'et-EE' : getLang() === 'en' ? 'en-GB' : 'ru-RU';
-
 function fmtDate(iso) {
   if (!iso) return '—';
-  try { return new Date(iso).toLocaleString(locale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); }
+  try { return new Date(iso).toLocaleString(localeTag(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); }
   catch { return iso; }
 }
 
 function fmtDay(iso) {
   if (!iso) return '—';
-  try { return new Date(iso).toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' }); }
+  try { return new Date(iso).toLocaleDateString(localeTag(), { day: 'numeric', month: 'long', year: 'numeric' }); }
   catch { return iso; }
 }
 
