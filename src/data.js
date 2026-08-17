@@ -19,6 +19,20 @@ const LS = {
   onboarded: 'wpt_onboarded'
 };
 
+// localStorage бросает исключение при переполнении квоты и в приватном режиме Safari.
+// Раньше это роняло обработчик целиком: тап по сердечку, сохранение отметки о проблеме
+// или переключение темы падали с необработанным исключением. Ни одна из этих записей
+// не критична настолько, чтобы ломать интерфейс — пишем «как получится», а вызывающий
+// код узнаёт об отказе по возвращаемому false, если ему это важно.
+function lsWrite(key, value) {
+  try { localStorage.setItem(key, value); return true; }
+  catch { return false; }
+}
+function lsRemove(key) {
+  try { localStorage.removeItem(key); return true; }
+  catch { return false; }
+}
+
 // Сезон по умолчанию: Tallinna Vesi, май–октябрь (§5 ТЗ). Только для кранов.
 const SEASON = { from: { m: 5, d: 1 }, to: { m: 10, d: 31 } };
 
@@ -172,24 +186,31 @@ export function loadCached() {
 }
 
 async function syncLayer(layer) {
+  let raw, now;
   try {
     const res = await fetch(layer.url, { signal: AbortSignal.timeout(15000) });
     if (!res.ok) throw new Error('http ' + res.status);
     const json = await res.json();
     if (!json.features || !json.features.length) throw new Error('empty');
-    const raw = layer.normalize(json.features);
+    raw = layer.normalize(json.features);
     if (!raw.length) throw new Error('empty after normalize');
-    const now = new Date().toISOString();
-    localStorage.setItem(layer.cacheKey, JSON.stringify(raw));
-    localStorage.setItem(layer.atKey, now);
-    setLayer(layer, raw, now, false);
-    return true;
+    now = new Date().toISOString();
   } catch (e) {
     // показываем последнюю успешную копию именно этого слоя (FR-01)
     state.layers[layer.category] = { ...state.layers[layer.category], syncFailed: true };
     publish();
     return false;
   }
+
+  // Запись в кеш — отдельно от загрузки и вне того же catch. Раньше переполненный
+  // localStorage (частый случай на iOS Safari и в приватном режиме) выглядел для
+  // пользователя как «источник недоступен», и свежие, успешно скачанные точки
+  // выбрасывались целиком вместо показа. Не смогли закешировать — не беда,
+  // данные всё равно отдаём: пострадает только следующий офлайн-запуск.
+  lsWrite(layer.cacheKey, JSON.stringify(raw));
+  lsWrite(layer.atKey, now);
+  setLayer(layer, raw, now, false);
+  return true;
 }
 
 export async function sync() {
@@ -259,7 +280,7 @@ export function getFavorites() {
 export function toggleFavorite(id) {
   const f = getFavorites();
   f.has(id) ? f.delete(id) : f.add(id);
-  localStorage.setItem(LS.favorites, JSON.stringify([...f]));
+  lsWrite(LS.favorites, JSON.stringify([...f]));
   return f.has(id);
 }
 
@@ -274,7 +295,7 @@ export function getReports() {
       return { ...r, contact: null, consent: false, moderation_status: moderationStatus };
     });
     // Старые записи могли содержать контакт и обещание модерации — удаляем их локально.
-    if (changed) localStorage.setItem(LS.reports, JSON.stringify(reports));
+    if (changed) lsWrite(LS.reports, JSON.stringify(reports));
     return reports;
   }
   catch { return []; }
@@ -304,13 +325,15 @@ export function submitReport(r) {
     created_at: new Date().toISOString(),
     moderation_status: 'local_demo'
   });
-  localStorage.setItem(LS.reports, JSON.stringify(reports));
+  // единственная запись, про отказ которой обязаны сказать вслух: интерфейс иначе
+  // покажет «Сохранено на этом устройстве» для отметки, которой на устройстве нет
+  if (!lsWrite(LS.reports, JSON.stringify(reports))) return { ok: false, reason: 'storage_failed' };
   return { ok: true };
 }
 
 export function clearReports() {
   const count = getReports().length;
-  localStorage.removeItem(LS.reports);
+  lsRemove(LS.reports);
   return count;
 }
 
@@ -319,20 +342,26 @@ export function track(event, props = {}) {
   try {
     const log = JSON.parse(localStorage.getItem(LS.analytics) || '[]');
     log.push({ event, ...props, ts: new Date().toISOString() });
-    localStorage.setItem(LS.analytics, JSON.stringify(log.slice(-500)));
+    lsWrite(LS.analytics, JSON.stringify(log.slice(-500)));
   } catch { /* ignore */ }
 }
 
 // ---------- тема ----------
-export function getTheme() { return localStorage.getItem(LS.theme) || 'light'; }
+export function getTheme() {
+  try { return localStorage.getItem(LS.theme) || 'light'; } catch { return 'light'; }
+}
 export function setTheme(v) {
-  localStorage.setItem(LS.theme, v);
+  // тема применяется к DOM в любом случае — не сохранилась, значит просто не переживёт
+  // перезагрузку, но ронять переключатель из-за этого незачем
+  lsWrite(LS.theme, v);
   document.documentElement.dataset.theme = v;
 }
 
 // ---------- онбординг (FR-01) ----------
-export function isOnboarded() { return localStorage.getItem(LS.onboarded) === '1'; }
-export function setOnboarded() { localStorage.setItem(LS.onboarded, '1'); }
+export function isOnboarded() {
+  try { return localStorage.getItem(LS.onboarded) === '1'; } catch { return false; }
+}
+export function setOnboarded() { lsWrite(LS.onboarded, '1'); }
 
 export function districts() {
   return [...new Set(state.points.map(p => p.district).filter(Boolean))].sort();

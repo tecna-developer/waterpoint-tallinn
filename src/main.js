@@ -1022,7 +1022,12 @@ function openReportSheet(p) {
         pointId: p.id, category: cat, pointCategory: p.category,
         comment
       });
-      if (!res.ok) { error = t('report_rate_limited'); draw(); return; }
+      // не сваливаем все отказы в «слишком часто»: переполненный localStorage — другая
+      // причина, и совет «попробуйте позже» для неё бесполезен
+      if (!res.ok) {
+        error = t(res.reason === 'storage_failed' ? 'report_storage_failed' : 'report_rate_limited');
+        draw(); return;
+      }
       track('report_save_local', { point: p.id, category: cat, point_category: p.category });
       draw(true);
     });

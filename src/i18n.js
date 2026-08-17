@@ -148,6 +148,8 @@ const dict = {
   report_sent_text: { et: 'Märge salvestati sellesse seadmesse. Seda ei saadetud moderaatorile ega serverisse.', en: 'The marker was saved on this device. It was not sent to a moderator or server.', ru: 'Отметка сохранена на этом устройстве. Она не отправлена модератору или на сервер.' },
   report_need_category: { et: 'Vali kategooria', en: 'Choose a category', ru: 'Выберите категорию' },
   report_rate_limited: { et: 'Liiga palju märkmeid järjest. Proovi hiljem.', en: 'Too many markers in a row. Try again later.', ru: 'Слишком много отметок подряд. Попробуйте позже.' },
+  // отказ записи в localStorage: «попробуйте позже» тут не поможет, нужна другая подсказка
+  report_storage_failed: { et: 'Märget ei õnnestunud seadmesse salvestada — seadme mälu on täis või privaatrežiim blokeerib salvestamise.', en: 'Could not save the marker on this device — storage is full or private mode blocks saving.', ru: 'Не удалось сохранить отметку на устройстве — закончилось место или приватный режим блокирует сохранение.' },
 
   geo_denied: { et: 'Asukoht on keelatud — kaugused arvutatakse otsingu järgi.', en: 'Location denied — distances follow your search.', ru: 'Геолокация отключена — расстояния считаются от точки поиска.' },
   geo_denied_action: { et: 'Otsi käsitsi', en: 'Search manually', ru: 'Искать вручную' },
@@ -201,7 +203,12 @@ function detectLang() {
   return FALLBACK;
 }
 
-let lang = localStorage.getItem('wpt_lang') || detectLang();
+// чтение localStorage тоже бросает в приватном режиме Safari — а это самый первый
+// вызов при загрузке модуля, падение здесь означало бы полностью белый экран
+let lang = (() => {
+  try { return localStorage.getItem('wpt_lang') || detectLang(); }
+  catch { return detectLang(); }
+})();
 
 export function getLang() { return lang; }
 
@@ -213,7 +220,8 @@ export function localeTag() {
 
 export function setLang(l) {
   lang = l;
-  localStorage.setItem('wpt_lang', l);
+  // не сохранилось — язык всё равно переключается, просто не переживёт перезагрузку
+  try { localStorage.setItem('wpt_lang', l); } catch { /* квота / приватный режим */ }
   document.documentElement.lang = l;
 }
 
