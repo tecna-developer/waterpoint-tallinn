@@ -38,13 +38,18 @@ export const icons = {
   leaf: s('<path d="M20 4C10 4 4.5 8 4.5 14.5A5.5 5.5 0 0 0 10 20c6.5 0 10-5.5 10-16z"/><path d="M17 7C11.5 9 8.5 13 7 19"/>')
 };
 
-// Цвет доступной точки задаёт категория, остальные статусы — общая шкала.
+// Цвет маркера — опознавательный знак КАТЕГОРИИ (вода/туалет) и не зависит от статуса:
+// категория не меняется, статус — редкое исключение поверх неё.
 const CATEGORY_COLOR = { water_tap: '#2d9cdb', public_toilet: '#3d8f6d' };
+// Перекрашивают маркер только тогда, когда есть что сообщить. «unknown» в исключения
+// не входит: без бэкенда это обычное состояние ~100% точек (GIS подтверждает наличие
+// точки, но не её текущую работоспособность) — красить в этот статус всю карту нечестно
+// и в другую сторону: превращает редкий сигнал в фоновый шум.
+const EXCEPTION_STATUSES = new Set(['seasonal_closed', 'reported_issue', 'temporarily_unavailable']);
 const STATUS_COLOR = {
   seasonal_closed: '#90a0b4',
   reported_issue: '#f2994a',
-  temporarily_unavailable: '#eb5757',
-  unknown: '#90a0b4'
+  temporarily_unavailable: '#eb5757'
 };
 
 // Силуэты: капля = вода, скруглённый пин с подписью WC = туалет.
@@ -57,8 +62,7 @@ const BODY = {
 const STATUS_GLYPH = {
   seasonal_closed: '<path d="M16 11.5v6M13 14.5h6" stroke="#fff" stroke-width="2" stroke-linecap="round" transform="rotate(45 16 14.5)"/>',
   reported_issue: '<path d="M16 10.5v4.5M16 17.6v.1" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>',
-  temporarily_unavailable: '<path d="M13.5 12l5 5M18.5 12l-5 5" stroke="#fff" stroke-width="2" stroke-linecap="round"/>',
-  unknown: '<path d="M14 12.2a2 2 0 1 1 2.4 2.6c-.4.2-.4.7-.4 1.2M16 18.2v.1" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round"/>'
+  temporarily_unavailable: '<path d="M13.5 12l5 5M18.5 12l-5 5" stroke="#fff" stroke-width="2" stroke-linecap="round"/>'
 };
 
 // Опознавательный знак категории — виден, когда точка доступна и статусный глиф не нужен.
@@ -70,11 +74,11 @@ const CATEGORY_GLYPH = {
 export function markerSvg(category, status, selected) {
   const size = selected ? 44 : 32;
   const cat = BODY[category] ? category : 'water_tap';
-  const ok = status === 'available';
-  const fill = ok ? CATEGORY_COLOR[cat] : (STATUS_COLOR[status] || STATUS_COLOR.unknown);
-  const glyph = ok ? CATEGORY_GLYPH[cat] : STATUS_GLYPH[status] || STATUS_GLYPH.unknown;
+  const exception = EXCEPTION_STATUSES.has(status);
+  const fill = exception ? STATUS_COLOR[status] : CATEGORY_COLOR[cat];
+  const glyph = exception ? STATUS_GLYPH[status] : CATEGORY_GLYPH[cat];
   // у туалета статусный глиф встаёт в центр корпуса, у капли — ниже, в её широкую часть
-  const shift = cat === 'public_toilet' && !ok ? -2 : 3;
+  const shift = cat === 'public_toilet' && exception ? -2 : 3;
   return `<svg width="${size}" height="${size}" viewBox="0 0 32 32">
     <path d="${BODY[cat]}" fill="${fill}" stroke="#fff" stroke-width="${selected ? 2.5 : 1.5}"/>
     <g transform="translate(0 ${shift})">${glyph}</g>

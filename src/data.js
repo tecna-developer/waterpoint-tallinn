@@ -208,8 +208,10 @@ export function computeStatus(p) {
   if (p.admin_status === 'temporarily_unavailable') return 'temporarily_unavailable';
   // сезонность — свойство уличных кранов, к туалетам не применяется
   if (p.category === 'water_tap' && !inSeason(p)) return 'seasonal_closed';
-  if (hasPendingReport(p.id)) return 'reported_issue'; // предупреждение, не смена официального статуса
-  return 'available';
+  if (hasLocalReport(p.id)) return 'reported_issue'; // локальная отметка только на этом устройстве
+  if (p.admin_status === 'available') return 'available';
+  // GIS подтверждает наличие точки в реестре, но не её текущую работоспособность.
+  return 'unknown';
 }
 
 export function seasonalWarningActive() {
@@ -254,18 +256,31 @@ export function toggleFavorite(id) {
 
 // ---------- отчёты (FR-09, FR-17) ----------
 export function getReports() {
-  try { return JSON.parse(localStorage.getItem(LS.reports) || '[]'); }
+  try {
+    const stored = JSON.parse(localStorage.getItem(LS.reports) || '[]');
+    let changed = false;
+    const reports = stored.map(r => {
+      const moderationStatus = r.moderation_status === 'pending' ? 'local_demo' : r.moderation_status;
+      if (r.contact != null || r.consent !== false || moderationStatus !== r.moderation_status) changed = true;
+      return { ...r, contact: null, consent: false, moderation_status: moderationStatus };
+    });
+    // Старые записи могли содержать контакт и обещание модерации — удаляем их локально.
+    if (changed) localStorage.setItem(LS.reports, JSON.stringify(reports));
+    return reports;
+  }
   catch { return []; }
 }
 // water_point_id — имя поля до появления слоя туалетов; читаем оба, чтобы отчёты,
 // уже лежащие на устройстве, не потерялись
 const reportPointId = r => r.point_id || r.water_point_id;
 
-export function hasPendingReport(pointId) {
-  return getReports().some(r => reportPointId(r) === pointId && r.moderation_status === 'pending');
+export function hasLocalReport(pointId) {
+  return getReports().some(r => reportPointId(r) === pointId &&
+    (r.moderation_status === 'local_demo' || r.moderation_status === 'pending'));
 }
 export function submitReport(r) {
-  // антиспам: не более 3 отчётов за 10 минут с устройства
+  // Демо-режим: отметки остаются только на устройстве. Ограничение защищает
+  // localStorage от случайной серии повторных сохранений.
   const reports = getReports();
   const recent = reports.filter(x => Date.now() - new Date(x.created_at).getTime() < 10 * 60 * 1000);
   if (recent.length >= 3) return { ok: false, reason: 'rate_limited' };
@@ -275,13 +290,19 @@ export function submitReport(r) {
     category: r.category,
     point_category: r.pointCategory,
     comment: r.comment || null,
-    contact: r.contact || null,
-    consent: true,
+    contact: null,
+    consent: false,
     created_at: new Date().toISOString(),
-    moderation_status: 'pending'
+    moderation_status: 'local_demo'
   });
   localStorage.setItem(LS.reports, JSON.stringify(reports));
   return { ok: true };
+}
+
+export function clearReports() {
+  const count = getReports().length;
+  localStorage.removeItem(LS.reports);
+  return count;
 }
 
 // ---------- приватная аналитика: без геолокации ----------

@@ -57,6 +57,9 @@ body {
   position: relative;
   overflow: hidden;
 }
+/* Единственный ребёнок #app, которого перезаписывает render(); сам #app и его прочие
+   дети (шторки) остаются нетронутыми — см. комментарий в index.html. */
+#view-root { display: flex; flex-direction: column; flex: 1; min-height: 0; width: 100%; }
 
 h1, h2, h3 { font-family: var(--font-heading); margin: 0; }
 
@@ -260,6 +263,7 @@ input, textarea { font-family: inherit; font-size: 15px; color: var(--text); }
   border: 1.5px solid var(--primary); color: var(--primary);
   border-radius: 20px; padding: 9px 18px; font-size: 14px; font-weight: 600;
 }
+.btn-secondary:disabled { opacity: 0.45; cursor: default; }
 
 /* ---------- настройки ---------- */
 .settings-group { margin: 6px 16px 14px; background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
@@ -320,6 +324,12 @@ input, textarea { font-family: inherit; font-size: 15px; color: var(--text); }
 .sheet .grabber { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 12px; }
 
 .cat-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.demo-notice {
+  display: flex; align-items: flex-start; gap: 8px; margin-bottom: 14px;
+  padding: 11px 12px; border-radius: var(--radius-sm);
+  background: var(--primary-soft); color: var(--text); font-size: 13px;
+}
+.demo-notice svg { flex: none; margin-top: 1px; color: var(--primary-strong); }
 .cat-opt {
   display: flex; align-items: center; gap: 10px; text-align: left;
   border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 11px 12px; font-size: 14px;
@@ -401,6 +411,7 @@ input, textarea { font-family: inherit; font-size: 15px; color: var(--text); }
 .legend-row { display: flex; align-items: center; gap: 7px; font-size: 12.5px; padding: 2px 0; }
 .legend-row .swatch { flex: none; width: 22px; height: 22px; display: grid; place-items: center; }
 .legend-row .swatch svg { width: 22px; height: 22px; }
+.legend-note { font-size: 11.5px; color: var(--text-muted); margin: 8px 0 0; line-height: 1.4; }
 
 /* ---------- честные пробелы в данных (§6.3) ---------- */
 .nodata { color: var(--text-muted); font-weight: 500; font-size: 14px; }

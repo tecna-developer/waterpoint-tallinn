@@ -5,11 +5,15 @@ import { t, getLang, setLang, LANGS, pointsCount } from './i18n.js';
 import { icons, markerSvg, thumbSvg } from './icons.js';
 import {
   state, loadCached, sync, computeStatus, withDistances, fmtDist, walkMinutes,
-  getFavorites, toggleFavorite, submitReport, hasPendingReport, seasonalWarningActive,
+  getFavorites, toggleFavorite, getReports, submitReport, clearReports, hasLocalReport, seasonalWarningActive,
   track, getTheme, setTheme, districts, origin, isOnboarded, setOnboarded
 } from './data.js';
 
 const app = document.getElementById('app');
+// render() перезаписывает только viewRoot.innerHTML — шторки (app.appendChild(overlay))
+// висят соседями viewRoot и не пропадают, если фоновый sync()/online-событие вызовет
+// render() поверх открытой формы.
+const viewRoot = document.getElementById('view-root');
 
 const ui = {
   view: 'map',                 // onboarding | map | list | saved | settings | detail
@@ -18,7 +22,6 @@ const ui = {
   selectedId: null,            // выбранная точка на карте
   category: 'all',             // FR-16: all | water_tap | public_toilet
   quick: 'all',                // all | available | animals
-  listSort: 'nearest',         // nearest | recent
   radius: null,                // null | 1000 | 2000 | 5000
   point_type: null,            // null | outdoor | indoor (только для кранов)
   favoritesOnly: false,
@@ -36,6 +39,9 @@ let mapEl = null;              // контейнер карты пережива
 let markerLayer = null;
 let userMarker = null;
 let markerSig = null;          // подпись набора маркеров — не перерисовываем без нужды
+let miniMap = null;            // мини-карта карточки точки; закрывается в render() ниже
+let lastRenderedView = null;   // для восстановления scrollTop при ререндере той же вью
+let savedScrollTop = 0;
 
 // ---------- фильтрация (FR-08, FR-16) ----------
 function filtered() {
@@ -89,8 +95,14 @@ function fmtDay(iso) {
   catch { return iso; }
 }
 
+// «unknown» — обычное состояние ~100% точек без бэкенда (реестр подтверждает наличие
+// точки, не работоспособность). Плашка «не подтверждено» на каждой из 174 карточек —
+// не сигнал, а шум; сам факт остаётся честно виден у даты проверки в карточке точки
+// (см. renderDetailView), бейдж показываем только для реальных исключений.
 function statusBadge(p, short = true) {
-  return `<span class="badge ${p.status}">${t(p.status === 'available' && short ? 'status_available_short' : 'status_' + p.status)}</span>`;
+  if (p.status === 'unknown') return '';
+  const shortKey = p.status === 'available' ? 'status_available_short' : null;
+  return `<span class="badge ${p.status}">${t(short && shortKey ? shortKey : 'status_' + p.status)}</span>`;
 }
 
 function routeUrl(p) {
@@ -252,10 +264,11 @@ function wireCategorySeg(rootEl) {
 function chipsHtml() {
   // «для животных» и indoor скрыты, пока источник не даёт таких признаков
   const showAnimals = hasAny(p => p.dog_bowl === true);
+  const showAvailable = hasAny(p => computeStatus(p) === 'available');
   return `
   <div class="chips">
     <button class="chip ${ui.quick === 'all' ? 'on' : ''}" data-quick="all">${t('chip_all')}</button>
-    <button class="chip ${ui.quick === 'available' ? 'on' : ''}" data-quick="available">${t('chip_available')}</button>
+    ${showAvailable ? `<button class="chip ${ui.quick === 'available' ? 'on' : ''}" data-quick="available">${t('chip_available')}</button>` : ''}
     ${showAnimals ? `<button class="chip ${ui.quick === 'animals' ? 'on' : ''}" data-quick="animals">${t('chip_animals')}</button>` : ''}
     <button class="chip ${ui.favoritesOnly ? 'on' : ''}" id="chip-fav">${t('chip_favorites')}</button>
   </div>`;
@@ -338,7 +351,7 @@ function wireHeader(rootEl) {
 // ---------- онбординг (FR-01, §7.1) ----------
 function renderOnboarding() {
   const lang = getLang();
-  app.innerHTML = `
+  viewRoot.innerHTML = `
     <div class="view onboarding">
       <div class="onb-art">${icons.dropFill}${icons.wc}</div>
       <h1>${t('onb_title')}</h1>
@@ -448,7 +461,7 @@ function syncMarkers(pts) {
 function renderMapView() {
   const pts = filtered();
   const sel = ui.selectedId ? pts.find(p => p.id === ui.selectedId) : null;
-  app.innerHTML = `
+  viewRoot.innerHTML = `
     <div class="view map-view no-scroll">
       <div id="map-slot"></div>
       ${searchBarHtml()}
@@ -486,20 +499,23 @@ function renderMapView() {
   syncMarkers(pts);
 }
 
-// §7.1/§7.2: легенда обязана явно различать «Вода» и «Туалеты»
+// §7.1/§7.2: легенда обязана явно различать «Вода» и «Туалеты».
+// «available» не входит в статусы легенды: без бэкенда этот статус не встречается ни
+// у одной точки — показывать для него отдельный образец было бы обманом (см. markerSvg).
 function legendHtml() {
   const swatch = html => `<span class="swatch">${html}</span>`;
-  const statuses = ['available', 'seasonal_closed', 'reported_issue', 'temporarily_unavailable'];
+  const statuses = ['seasonal_closed', 'reported_issue', 'temporarily_unavailable'];
   return `
   <div class="legend" role="region" aria-label="${t('legend_title')}">
     <div class="legend-head">${t('legend_title')}<button id="legend-close" aria-label="${t('close')}">${icons.close}</button></div>
     <div class="legend-label">${t('legend_layers')}</div>
-    <div class="legend-row">${swatch(markerSvg('water_tap', 'available', false))}${t('cat_water_tap')}</div>
-    <div class="legend-row">${swatch(markerSvg('public_toilet', 'available', false))}${t('cat_public_toilet')}</div>
+    <div class="legend-row">${swatch(markerSvg('water_tap', 'unknown', false))}${t('cat_water_tap')}</div>
+    <div class="legend-row">${swatch(markerSvg('public_toilet', 'unknown', false))}${t('cat_public_toilet')}</div>
     <div class="legend-label">${t('legend_statuses')}</div>
     ${statuses.map(s => `<div class="legend-row">
         ${swatch(markerSvg('water_tap', s, false))}${t('status_' + s)}
       </div>`).join('')}
+    <p class="legend-note">${t('legend_default_note')}</p>
   </div>`;
 }
 
@@ -517,10 +533,14 @@ function mapCardHtml(p) {
 }
 
 // ---------- список (FR-04) ----------
+// Сортировка «Недавно добавленные» убрана: source_object_id — внутренний id ArcGIS,
+// не дата создания; после слияния слоёв он ещё и сортировал все точки по категории
+// вместо реальной свежести (см. критику). filtered()/withDistances() уже сортирует
+// по расстоянию — другого осмысленного порядка без поля created_at в источнике нет.
 function renderListView() {
-  let pts = filtered();
-  if (ui.listSort === 'recent') pts = [...pts].sort((a, b) => b.source_object_id - a.source_object_id);
+  const pts = filtered();
   const favs = getFavorites();
+  const showAvailable = hasAny(p => computeStatus(p) === 'available');
 
   let body;
   if (ui.loading) {
@@ -548,15 +568,13 @@ function renderListView() {
       </button>`).join('') + `</div>`;
   }
 
-  app.innerHTML = `
+  viewRoot.innerHTML = `
     <div class="view">
       ${headerHtml()}
       ${searchBarHtml()}
       ${categorySegHtml()}
       <div class="chips">
-        <button class="chip ${ui.listSort === 'nearest' ? 'on' : ''}" data-sort="nearest">${icons.nav.replace('width="22" height="22"', 'width="14" height="14"')} ${t('chip_nearest')}</button>
-        <button class="chip ${ui.listSort === 'recent' ? 'on' : ''}" data-sort="recent">${icons.clock.replace('width="22" height="22"', 'width="14" height="14"')} ${t('chip_recent')}</button>
-        <button class="chip ${ui.quick === 'available' ? 'on' : ''}" data-quick-toggle="available">${t('chip_available')}</button>
+        ${showAvailable ? `<button class="chip ${ui.quick === 'available' ? 'on' : ''}" data-quick-toggle="available">${t('chip_available')}</button>` : ''}
       </div>
       <div class="section-head"><h2>${t('nav_list')}</h2><span class="count">${pointsCount(pts.length)}</span></div>
       ${bannersHtml()}
@@ -566,7 +584,6 @@ function renderListView() {
     ${navHtml()}`;
 
   wireNav(app); wireSearch(app); wireHeader(app); wireBanners(app); wireCategorySeg(app);
-  app.querySelectorAll('[data-sort]').forEach(b => b.addEventListener('click', () => { ui.listSort = b.dataset.sort; render(); }));
   app.querySelectorAll('[data-quick-toggle]').forEach(b => b.addEventListener('click', () => {
     ui.quick = ui.quick === b.dataset.quickToggle ? 'all' : b.dataset.quickToggle; render();
   }));
@@ -596,6 +613,13 @@ function openDetail(id, from) {
   ui.detailFrom = from || ui.view;
   ui.detailId = id;
   ui.view = 'detail';
+  // Переключение нижних вкладок (map/list/saved/settings) не трогает историю — иначе
+  // «назад» листало бы вкладки вместо выхода из приложения. Из-за этого запись ПОД
+  // карточкой могла годами хранить состояние с самого первого захода (напр. onboarding);
+  // перед push обновляем именно её, чтобы «назад» возвращал туда, откуда реально открыли
+  // карточку, а не к точке первого запуска.
+  history.replaceState({ view: ui.detailFrom }, '', location.pathname);
+  history.pushState({ view: 'detail', id, from: ui.detailFrom }, '', '?p=' + encodeURIComponent(id));
   const p = state.points.find(x => x.id === id);
   track('point_open', { point: id, category: p?.category });
   render();
@@ -643,10 +667,10 @@ function renderDetailView() {
   const isToilet = p.category === 'public_toilet';
   const favs = getFavorites();
   const fav = favs.has(p.id);
-  const reported = hasPendingReport(p.id);
+  const reported = hasLocalReport(p.id);
   const temporaryNote = isToilet && p.toilet_kind === 'temporary' && p.available_until;
 
-  app.innerHTML = `
+  viewRoot.innerHTML = `
     <div class="view detail-view">
       <div class="hero ${isToilet ? 'wc' : ''}">
         ${thumbSvg(p.category)}
@@ -673,6 +697,7 @@ function renderDetailView() {
           <div class="label">${t('detail_source')}</div>
           <button class="source-link" id="source-link">${icons.info.replace('width="22" height="22"', 'width="15" height="15"')} ${t(isToilet ? 'detail_source_toilet' : 'detail_source_water')}</button>
           <div class="verified">${t('detail_verified')}: ${p.last_verified_at ? fmtDate(p.last_verified_at) : t('no_data_short')}</div>
+          ${p.status === 'unknown' ? `<div class="verified">${t('status_unknown')}</div>` : ''}
         </div>
         <div class="mini-map" id="mini-map" aria-hidden="true"></div>
         <div class="detail-links">
@@ -686,7 +711,9 @@ function renderDetailView() {
       ${toastHtml()}
     </div>`;
 
-  app.querySelector('#detail-back').addEventListener('click', () => { ui.view = ui.detailFrom; ui.detailId = null; render(); });
+  // history.back(), а не прямая мутация ui — так in-app стрелка и системная «Назад»
+  // идут через один и тот же popstate-обработчик и не расходятся между собой.
+  app.querySelector('#detail-back').addEventListener('click', () => history.back());
   app.querySelector('#detail-fav').addEventListener('click', () => { toggleFavorite(p.id); render(); });
   app.querySelector('#detail-map-link').addEventListener('click', () => {
     ui.view = 'map'; ui.selectedId = p.id; ui.mapCenter = [p.lat, p.lng]; ui.mapZoom = 16; render();
@@ -699,10 +726,14 @@ function renderDetailView() {
   app.querySelector('#share-btn').addEventListener('click', () => sharePoint(p));
   app.querySelector('#open-report').addEventListener('click', () => openReportSheet(p));
 
-  const mm = L.map('mini-map', { zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, attributionControl: false, tap: false })
+  // renderDetailView перерисовывается на каждый toggleFavorite/showToast/фоновый sync,
+  // а Leaflet не убирает себя вместе с DOM-узлом — без явного remove() каждый такой
+  // ререндер оставляет висящий инстанс с тайлами и подписками на window (утечка).
+  if (miniMap) { miniMap.remove(); miniMap = null; }
+  miniMap = L.map('mini-map', { zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, attributionControl: false, tap: false })
     .setView([p.lat, p.lng], 15);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(mm);
-  L.marker([p.lat, p.lng], { icon: L.divIcon({ className: 'wp-marker', html: markerSvg(p.category, p.status, true), iconSize: [44, 44], iconAnchor: [22, 44] }), interactive: false }).addTo(mm);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(miniMap);
+  L.marker([p.lat, p.lng], { icon: L.divIcon({ className: 'wp-marker', html: markerSvg(p.category, p.status, true), iconSize: [44, 44], iconAnchor: [22, 44] }), interactive: false }).addTo(miniMap);
 }
 
 // ---------- избранное ----------
@@ -723,7 +754,7 @@ function renderSavedView() {
       </button>`).join('') + `</div>`
     : `<div class="state-box"><div class="icon">🤍</div><h3>${t('saved_empty_title')}</h3><div>${t('saved_empty_text')}</div></div>`;
 
-  app.innerHTML = `
+  viewRoot.innerHTML = `
     <div class="view">
       ${headerHtml()}
       <div class="section-head"><h2>${t('saved_title')}</h2><span class="count">${pointsCount(pts.length)}</span></div>
@@ -738,7 +769,8 @@ function renderSavedView() {
 // ---------- настройки (тема, синхронизация, о проекте, эко-блок) ----------
 function renderSettingsView() {
   const lang = getLang();
-  app.innerHTML = `
+  const localReportsCount = getReports().length;
+  viewRoot.innerHTML = `
     <div class="view">
       ${headerHtml()}
       <div class="section-head"><h2>${t('settings_title')}</h2></div>
@@ -766,6 +798,15 @@ function renderSettingsView() {
           </span>
           <button class="btn-secondary" id="sync-btn">${t('settings_sync_now')}</button>
         </div>
+        <div class="settings-row">
+          ${icons.alert}
+          <span class="grow">${t('settings_demo_reports')}
+            <span class="sub">${localReportsCount
+              ? t('settings_demo_reports_count', { n: localReportsCount })
+              : t('settings_demo_reports_empty')}</span>
+          </span>
+          <button class="btn-secondary" id="clear-reports-btn" ${localReportsCount ? '' : 'disabled'}>${t('settings_demo_reports_clear')}</button>
+        </div>
       </div>
 
       <div class="eco-card standalone">${icons.leaf}<div><strong>${t('eco_title')}</strong><span>${t('eco_text')}</span></div></div>
@@ -790,6 +831,10 @@ function renderSettingsView() {
     await sync();
     render();
   });
+  app.querySelector('#clear-reports-btn').addEventListener('click', () => {
+    clearReports();
+    showToast(t('settings_demo_reports_cleared'));
+  });
 }
 
 // ---------- фильтры (FR-08) ----------
@@ -800,6 +845,7 @@ function openFilterSheet() {
   const typeOpts = [[null, t('chip_all')], ['outdoor', t('filters_type_outdoor')], ['indoor', t('filters_type_indoor')]];
   const catOpts = [['all', t('cat_all')], ['water_tap', t('cat_water_tap')], ['public_toilet', t('cat_public_toilet')]];
   const showAnimals = hasAny(p => p.dog_bowl === true);
+  const showAvailable = hasAny(p => computeStatus(p) === 'available');
   const showPointType = hasAny(p => p.point_type === 'indoor');
 
   function count(tmp) {
@@ -822,10 +868,10 @@ function openFilterSheet() {
           <div class="seg">${catOpts.map(([v, l]) => `<button class="chip ${tmp.category === v ? 'on' : ''}" data-c="${v}">${l}</button>`).join('')}</div>
         </div>
         <div class="filter-section">
-          <div class="label">${t('chip_available')}</div>
+          <div class="label">${t('filters_show')}</div>
           <div class="seg">
             <button class="chip ${tmp.quick === 'all' ? 'on' : ''}" data-q="all">${t('chip_all')}</button>
-            <button class="chip ${tmp.quick === 'available' ? 'on' : ''}" data-q="available">${t('chip_available')}</button>
+            ${showAvailable ? `<button class="chip ${tmp.quick === 'available' ? 'on' : ''}" data-q="available">${t('chip_available')}</button>` : ''}
             ${showAnimals ? `<button class="chip ${tmp.quick === 'animals' ? 'on' : ''}" data-q="animals">${t('chip_animals')}</button>` : ''}
             <button class="chip ${tmp.fav ? 'on' : ''}" data-f="1">${t('chip_favorites')}</button>
           </div>
@@ -873,74 +919,85 @@ function openReportSheet(p) {
   const overlay = document.createElement('div');
   overlay.className = 'overlay';
   const cats = REPORT_CATEGORIES[p.category] || REPORT_CATEGORIES.water_tap;
-  let cat = null, error = '';
+  const opener = document.activeElement;
+  let cat = null, comment = '', error = '';
+
+  const close = () => {
+    overlay.remove();
+    if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+  };
 
   function draw(sent = false) {
     if (sent) {
       overlay.innerHTML = `
-        <div class="sheet" role="dialog">
+        <div class="sheet" role="dialog" aria-modal="true" aria-label="${t('report_sent_title')}">
           <div class="grabber"></div>
           <div class="state-box" style="padding:24px 8px">
             <div class="icon">✅</div>
             <h3>${t('report_sent_title')}</h3><div>${t('report_sent_text')}</div>
-            <button class="btn-secondary" id="r-done">${t('close')}</button>
+            <button class="btn-secondary" id="r-done" type="button">${t('close')}</button>
           </div>
         </div>`;
       overlay.querySelector('#r-done').addEventListener('click', () => { overlay.remove(); render(); });
       return;
     }
     overlay.innerHTML = `
-      <div class="sheet" role="dialog" aria-label="${t('report_title')}">
+      <form class="sheet" id="report-form" role="dialog" aria-modal="true" aria-label="${t('report_title')}">
         <div class="grabber"></div>
         <h2>${t('report_title')}</h2>
+        <div class="demo-notice">${icons.info.replace('width="22" height="22"', 'width="18" height="18"')}<span>${t('report_demo_notice')}</span></div>
         <div class="cat-list">
-          ${cats.map(c => `<button class="cat-opt ${cat === c ? 'on' : ''}" data-c="${c}">${t('report_cat_' + c)}</button>`).join('')}
+          ${cats.map(c => `<button class="cat-opt ${cat === c ? 'on' : ''}" data-c="${c}" type="button">${t('report_cat_' + c)}</button>`).join('')}
         </div>
         <div class="field">
           <label for="r-comment">${t('report_comment')}</label>
-          <textarea id="r-comment" rows="3" placeholder="${t('report_comment_ph')}"></textarea>
+          <textarea id="r-comment" rows="3" placeholder="${t('report_comment_ph')}">${esc(comment)}</textarea>
         </div>
-        <div class="field">
-          <label for="r-contact">${t('report_contact')}</label>
-          <input type="text" id="r-contact" placeholder="${t('report_contact_ph')}" />
-        </div>
-        <input type="text" class="hp" id="r-website" tabindex="-1" autocomplete="off" />
-        <label class="consent-row"><input type="checkbox" id="r-consent" /> ${t('report_consent')}</label>
         ${error ? `<div class="form-error">${error}</div>` : ''}
         <div class="sheet-actions">
-          <button class="btn-ghost" id="r-cancel">${t('report_cancel')}</button>
-          <button class="btn-primary" id="r-send">${t('report_submit')}</button>
+          <button class="btn-ghost" id="r-cancel" type="button">${t('report_cancel')}</button>
+          <button class="btn-primary" id="r-send" type="submit">${t('report_submit')}</button>
         </div>
-      </div>`;
+      </form>`;
     overlay.querySelectorAll('[data-c]').forEach(b => b.addEventListener('click', () => {
       cat = b.dataset.c;
       overlay.querySelectorAll('.cat-opt').forEach(x => x.classList.toggle('on', x.dataset.c === cat));
     }));
-    overlay.querySelector('#r-cancel').addEventListener('click', () => overlay.remove());
-    overlay.querySelector('#r-send').addEventListener('click', () => {
-      const consent = overlay.querySelector('#r-consent').checked;
-      const honeypot = overlay.querySelector('#r-website').value;
-      if (honeypot) { overlay.remove(); return; } // бот
+    overlay.querySelector('#r-cancel').addEventListener('click', close);
+    overlay.querySelector('#report-form').addEventListener('submit', e => {
+      e.preventDefault();
+      comment = overlay.querySelector('#r-comment').value.trim();
       if (!cat) { error = t('report_need_category'); draw(); return; }
-      if (!consent) { error = t('report_need_consent'); draw(); return; }
       const res = submitReport({
         pointId: p.id, category: cat, pointCategory: p.category,
-        comment: overlay.querySelector('#r-comment').value.trim(),
-        contact: overlay.querySelector('#r-contact').value.trim()
+        comment
       });
       if (!res.ok) { error = t('report_rate_limited'); draw(); return; }
-      track('report_submit', { point: p.id, category: cat, point_category: p.category });
+      track('report_save_local', { point: p.id, category: cat, point_category: p.category });
       draw(true);
     });
   }
   draw();
-  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  overlay.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
   app.appendChild(overlay);
+  overlay.querySelector('.cat-opt')?.focus();
 }
 
 // ---------- рендер ----------
 function render() {
-  // карта-инстанс переживает смену вью; из DOM её вынимает innerHTML, вернёт mountMap
+  // карта-инстанс переживает смену вью; из DOM её вынимает innerHTML, вернёт mountMap.
+  // Мини-карта карточки точки так не умеет (см. renderDetailView) — закрываем её сами,
+  // как только пользователь ушёл с detail, чтобы не плодить висящие Leaflet-инстансы.
+  if (miniMap && ui.view !== 'detail') { miniMap.remove(); miniMap = null; }
+
+  // Toggle избранного/чипа/сортировки — это ререндер ТОЙ ЖЕ вью, а не переход на другую
+  // страницу; сохраняем scrollTop, иначе каждый тап по сердечку в списке отбрасывает
+  // пользователя наверх (см. критику: клик по 40-й карточке сбрасывал scroll 3000→0).
+  const outgoing = viewRoot.querySelector('.view');
+  const restoring = !!outgoing && ui.view === lastRenderedView;
+  if (outgoing) savedScrollTop = outgoing.scrollTop;
+
   switch (ui.view) {
     case 'onboarding': renderOnboarding(); break;
     case 'map': renderMapView(); break;
@@ -949,6 +1006,10 @@ function render() {
     case 'settings': renderSettingsView(); break;
     case 'detail': renderDetailView(); break;
   }
+
+  const incoming = viewRoot.querySelector('.view');
+  if (incoming && restoring) incoming.scrollTop = savedScrollTop;
+  lastRenderedView = ui.view;
 }
 
 // ---------- запуск ----------
@@ -958,6 +1019,20 @@ function openSharedPoint() {
   ui.detailId = id; ui.detailFrom = 'map'; ui.view = 'detail';
   return true;
 }
+
+// Единственная точка входа для «Назад» — и физической кнопки на Android, и системного
+// жеста, и in-app стрелки (которая теперь просто дёргает history.back()). Без этого
+// уже в первой попытке назад из карточки точки closed приложение целиком (см. критику).
+window.addEventListener('popstate', e => {
+  const s = e.state;
+  if (s?.view === 'detail') {
+    ui.view = 'detail'; ui.detailId = s.id; ui.detailFrom = s.from || 'map';
+  } else {
+    ui.view = (s && s.view) || 'map';
+    ui.detailId = null;
+  }
+  render();
+});
 
 async function start() {
   setTheme(getTheme());
@@ -969,6 +1044,12 @@ async function start() {
   const shared = openSharedPoint();
   // FR-01: системный запрос геолокации — только после экрана с объяснением
   if (!isOnboarded() && !shared) ui.view = 'onboarding';
+  // Базовая запись истории — точка, куда вернёт history.back() из первой открытой
+  // карточки; без неё popstate прилетал бы с state=null и терял ui.detailFrom.
+  history.replaceState(
+    shared ? { view: 'detail', id: ui.detailId, from: 'map' } : { view: ui.view },
+    '', location.pathname + (shared ? location.search : '')
+  );
   render();
   if (isOnboarded()) requestGeo();
 

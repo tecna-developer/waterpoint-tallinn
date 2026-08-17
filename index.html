@@ -33,7 +33,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=PT+Serif:wght@700&subset=cyrillic&display=swap" rel="stylesheet" />
 </head>
 <body>
-  <div id="app"></div>
+  <!-- #view-root — единственное, что перезаписывает render(); шторки (#app > .overlay)
+       остаются его соседями и переживают любой ререндер вью (см. main.js render()). -->
+  <div id="app"><div id="view-root"></div></div>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
