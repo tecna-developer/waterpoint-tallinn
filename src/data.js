@@ -229,7 +229,11 @@ export function distanceM(a, b) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-export function origin() { return state.userPos || state.searchPos || null; }
+// Явный выбор адреса/района/точки на карте — более сильный сигнал, чем фоновый GPS:
+// пользователь целенаправленно спрашивает «сколько отсюда», а не «сколько от меня».
+// GPS возвращается активной точкой отсчёта только явным нажатием «Моё местоположение»
+// (requestGeo(interactive=true) очищает searchPos — см. main.js).
+export function origin() { return state.searchPos || state.userPos || null; }
 
 export function withDistances(points) {
   const o = origin();

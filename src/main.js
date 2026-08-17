@@ -145,6 +145,9 @@ function requestGeo(interactive = false) {
     pos => {
       state.userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       state.geoDenied = false;
+      // Явный тап по «Моё местоположение» — пользователь просит вернуть точку отсчёта
+      // к себе; без этого searchPos продолжал бы перебивать GPS (см. origin() в data.js).
+      if (interactive) state.searchPos = null;
       if (map && interactive) map.setView([state.userPos.lat, state.userPos.lng], 14);
       render();
     },
