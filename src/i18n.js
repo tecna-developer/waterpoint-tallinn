@@ -154,6 +154,10 @@ const dict = {
   geo_denied: { et: 'Asukoht on keelatud — kaugused arvutatakse otsingu järgi.', en: 'Location denied — distances follow your search.', ru: 'Геолокация отключена — расстояния считаются от точки поиска.' },
   geo_denied_action: { et: 'Otsi käsitsi', en: 'Search manually', ru: 'Искать вручную' },
   offline_banner: { et: 'Võrguühendus puudub. Andmed: {date}', en: 'You are offline. Data from {date}', ru: 'Нет сети. Данные от {date}' },
+  // Подложка карты — единственное, что всегда идёт из сети: точки лежат в кеше и
+  // работают офлайн, а тайлы нет. Без этой подписи пользователь видит пустое серое
+  // поле и не понимает, сломалось приложение или пропала связь.
+  tiles_failed: { et: 'Kaardi taust ei laadinud — see vajab võrku. Punktide nimekiri ja kaardid töötavad ka võrguühenduseta.', en: 'The map background did not load — it needs a network. The point list and cards still work offline.', ru: 'Фон карты не загрузился — для него нужна сеть. Список точек и карточки работают и без неё.' },
   stale_banner: { et: 'Andmed: {date}', en: 'Data from {date}', ru: 'Данные от {date}' },
   empty_title: { et: 'Midagi ei leitud', en: 'Nothing found', ru: 'Ничего не найдено' },
   empty_text: { et: 'Proovi filtreid lõdvendada või lähtestada.', en: 'Try relaxing or resetting the filters.', ru: 'Попробуйте ослабить или сбросить фильтры.' },

@@ -28,6 +28,7 @@ const ui = {
   search: '',
   loading: true,
   legendOpen: false,
+  tilesFailed: false,          // подложка карты не загрузилась (см. mountMap)
   pickMode: false,             // FR-01: ручной выбор точки отсчёта на карте
   toast: null,
   mapCenter: [59.437, 24.7536],
@@ -308,6 +309,10 @@ function bannersHtml() {
   } else if (state.syncFailed) {
     html += `<div class="banner warn">${icons.alert} ${t('settings_sync_fail')}</div>`;
   }
+  // Только на карте: в списке подложка ни при чём, там баннер был бы шумом
+  if (ui.tilesFailed && ui.view === 'map') {
+    html += `<div class="banner warn">${icons.map} ${t('tiles_failed')}</div>`;
+  }
   // §7.2: сезонное предупреждение по наружным кранам
   if (seasonalWarningActive() && ui.category !== 'public_toilet') {
     html += `<div class="banner info">${icons.clock} ${t('season_warning')}</div>`;
@@ -425,10 +430,25 @@ function mountMap(slot) {
   if (!map) {
     map = L.map(mapEl, { zoomControl: false, attributionControl: true })
       .setView(ui.mapCenter, ui.mapZoom);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    const tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; OpenStreetMap, &copy; CARTO',
       maxZoom: 19
     }).addTo(map);
+    // Подложка — единственное, что всегда тянется из сети (точки лежат в кеше). Если
+    // тайлы не пришли — офлайн-запуск установленного PWA, блокировка CDN, плохая
+    // связь — пользователь раньше видел просто пустое серое поле без объяснений:
+    // маркеры и список работают, а карты «нет». Теперь состояние подложки честно
+    // подписано, а не оставлено на догадки.
+    tiles.on('tileerror', () => {
+      if (ui.tilesFailed) return;                 // событие приходит на каждый тайл
+      ui.tilesFailed = true;
+      render();
+    });
+    tiles.on('tileload', () => {
+      if (!ui.tilesFailed) return;
+      ui.tilesFailed = false;
+      render();
+    });
     markerLayer = L.layerGroup().addTo(map);
     map.on('moveend', () => { const c = map.getCenter(); ui.mapCenter = [c.lat, c.lng]; ui.mapZoom = map.getZoom(); });
     map.on('click', e => {
