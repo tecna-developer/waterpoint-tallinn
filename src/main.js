@@ -465,26 +465,36 @@ function mountMap(slot) {
     map.setView(ui.mapCenter, ui.mapZoom, { animate: false });
   }
   mapEl.classList.toggle('picking', ui.pickMode);
-  requestAnimationFrame(() => map && map.invalidateSize());
 
-  // Раньше размер карты досчитывался ещё и по таймеру на 200 мс. Это догадка: если в
-  // оба момента (rAF и 200 мс) контейнер ещё нулевой или не той высоты — Leaflet
-  // запоминает неверный размер, тайлы не запрашиваются, и карта остаётся пустой при
-  // живом остальном интерфейсе. На медленном телефоне это ловится легко: поздняя
-  // загрузка шрифтов, сворачивание адресной строки, поворот экрана, 100dvh.
-  // ResizeObserver реагирует на фактическое изменение размера, а не на угаданный срок.
   if (!mapResizeObserver && typeof ResizeObserver !== 'undefined') {
-    mapResizeObserver = new ResizeObserver(() => {
-      // invalidateSize не меняет размер самого контейнера — рекурсии здесь нет
-      if (map) map.invalidateSize();
-    });
+    mapResizeObserver = new ResizeObserver(ensureMapSized);
     mapResizeObserver.observe(mapEl);
   }
-  // Таймер оставлен и при работающем ResizeObserver — намеренно, а не по забывчивости:
-  // проверить наблюдатель в текущем окружении невозможно (панель браузера не
-  // отрисовывается, кадровый цикл заморожен, rAF и ResizeObserver не вызываются вовсе),
-  // поэтому страховку убирать нельзя. Лишний invalidateSize безвреден.
-  setTimeout(() => map && map.invalidateSize(), 200);
+  // Каждый триггер по отдельности ненадёжен (см. ensureMapSized), поэтому дёргаем
+  // проверку и сразу, и с запасом по времени — на случай поздней раскладки.
+  requestAnimationFrame(ensureMapSized);
+  [0, 150, 400, 1000].forEach(ms => setTimeout(ensureMapSized, ms));
+}
+
+// Единственная защита от «карта есть, а тайлов нет».
+//
+// Симптом с телефона: карта то пропадает, то появляется сама, и при этом НЕ появляется
+// баннер о неудачной загрузке тайлов. Это исключает сеть: раз нет ни одного `tileerror`,
+// значит Leaflet вообще не запрашивал тайлы, а не запрашивает он их ровно тогда, когда
+// считает свой размер нулевым. Контейнер при этом на экране нормального размера —
+// расходится именно внутреннее состояние Leaflet, и само оно не восстанавливается.
+//
+// Причин, по которым состояние разъезжается, много (возврат PWA из фона, когда Android
+// выгрузил отрисовку; bfcache; поворот; поздняя раскладка при холодном старте), и
+// полагаться на какой-то один триггер нельзя — предыдущая попытка чинила только один из
+// них. Поэтому проверяем не «случилось ли событие», а сам факт расхождения размеров.
+function ensureMapSized() {
+  if (!map || !mapEl || !mapEl.isConnected) return;
+  const w = mapEl.clientWidth, h = mapEl.clientHeight;
+  if (!w || !h) return;                       // контейнер ещё не разложен — ждём следующего вызова
+  const known = map.getSize();
+  if (known.x === w && known.y === h) return; // размеры сходятся, трогать нечего
+  map.invalidateSize({ animate: false });
 }
 
 function syncMarkers(pts) {
@@ -1158,6 +1168,19 @@ async function start() {
   sync().then(() => render());
   window.addEventListener('online', render);
   window.addEventListener('offline', render);
+
+  // Пересверка размера карты по всем событиям, после которых Leaflet может остаться со
+  // старым (нулевым) размером. Главный из них — visibilitychange: у установленного PWA,
+  // свёрнутого и поднятого обратно, отрисовка выгружается системой, а Leaflet об этом
+  // не узнаёт и молча перестаёт запрашивать тайлы. Ни одного из этих обработчиков в
+  // приложении не было. Сама проверка идемпотентна: если размеры сходятся, она ничего
+  // не делает (см. ensureMapSized).
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) ensureMapSized();
+  });
+  window.addEventListener('pageshow', ensureMapSized);        // возврат из bfcache
+  window.addEventListener('orientationchange', () => setTimeout(ensureMapSized, 150));
+  window.addEventListener('resize', ensureMapSized);
   if ('serviceWorker' in navigator && !location.hostname.includes('localhost')) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
