@@ -511,7 +511,7 @@ function syncMarkers(pts) {
   if (userMarker) { userMarker.remove(); userMarker = null; }
   if (state.userPos) {
     userMarker = L.circleMarker([state.userPos.lat, state.userPos.lng],
-      { radius: 7, color: '#fff', weight: 2, fillColor: '#2d9cdb', fillOpacity: 1 }).addTo(map);
+      { radius: 7, color: '#fff', weight: 2, fillColor: '#1a76a8', fillOpacity: 1 }).addTo(map);
   }
 }
 
