@@ -36,6 +36,7 @@ const ui = {
 
 let map = null;
 let mapEl = null;              // контейнер карты переживает ререндеры (см. mountMap)
+let mapResizeObserver = null;  // следит за фактическим размером контейнера (см. mountMap)
 let markerLayer = null;
 let userMarker = null;
 let markerSig = null;          // подпись набора маркеров — не перерисовываем без нужды
@@ -445,6 +446,24 @@ function mountMap(slot) {
   }
   mapEl.classList.toggle('picking', ui.pickMode);
   requestAnimationFrame(() => map && map.invalidateSize());
+
+  // Раньше размер карты досчитывался ещё и по таймеру на 200 мс. Это догадка: если в
+  // оба момента (rAF и 200 мс) контейнер ещё нулевой или не той высоты — Leaflet
+  // запоминает неверный размер, тайлы не запрашиваются, и карта остаётся пустой при
+  // живом остальном интерфейсе. На медленном телефоне это ловится легко: поздняя
+  // загрузка шрифтов, сворачивание адресной строки, поворот экрана, 100dvh.
+  // ResizeObserver реагирует на фактическое изменение размера, а не на угаданный срок.
+  if (!mapResizeObserver && typeof ResizeObserver !== 'undefined') {
+    mapResizeObserver = new ResizeObserver(() => {
+      // invalidateSize не меняет размер самого контейнера — рекурсии здесь нет
+      if (map) map.invalidateSize();
+    });
+    mapResizeObserver.observe(mapEl);
+  }
+  // Таймер оставлен и при работающем ResizeObserver — намеренно, а не по забывчивости:
+  // проверить наблюдатель в текущем окружении невозможно (панель браузера не
+  // отрисовывается, кадровый цикл заморожен, rAF и ResizeObserver не вызываются вовсе),
+  // поэтому страховку убирать нельзя. Лишний invalidateSize безвреден.
   setTimeout(() => map && map.invalidateSize(), 200);
 }
 
