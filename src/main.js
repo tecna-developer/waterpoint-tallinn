@@ -29,6 +29,7 @@ const ui = {
   loading: true,
   legendOpen: false,
   tilesFailed: false,          // подложка карты не загрузилась (см. mountMap)
+  mapZeroSize: false,          // контейнер карты схлопнулся в нулевую высоту (см. ensureMapSized)
   pickMode: false,             // FR-01: ручной выбор точки отсчёта на карте
   toast: null,
   mapCenter: [59.437, 24.7536],
@@ -492,7 +493,12 @@ function mountMap(slot) {
 function ensureMapSized() {
   if (!map || !mapEl || !mapEl.isConnected) return;
   const w = mapEl.clientWidth, h = mapEl.clientHeight;
-  if (!w || !h) return;                       // контейнер ещё не разложен — ждём следующего вызова
+  // Ранний выход при нулевом размере был ошибкой: именно в этом состоянии карта и
+  // ломается (замер с телефона: container 375×0 при leaflet 359×4121), то есть защита
+  // гарантированно бездействовала в единственном случае, ради которого писалась.
+  // Нулевая высота контейнера — не повод молчать, а сам симптом: сообщаем о нём.
+  if (!w || !h) { ui.mapZeroSize = true; return; }
+  if (ui.mapZeroSize) ui.mapZeroSize = false;
   const known = map.getSize();
   if (known.x === w && known.y === h) return; // размеры сходятся, трогать нечего
   map.invalidateSize({ animate: false });
@@ -571,6 +577,7 @@ function renderMapView() {
       ${bannersHtml()}
       ${sel ? mapCardHtml(sel) : ''}
       ${toastHtml()}
+      <div class="map-debug" id="map-debug"></div>
     </div>
     ${navHtml()}`;
 
@@ -592,6 +599,19 @@ function renderMapView() {
 
   mountMap(app.querySelector('#map-slot'));
   syncMarkers(pts);
+
+  // Диагностика читается прямо на экране карты — то есть в тот момент, когда карта
+  // действительно пустая. В настройках она врала: там карты в разметке нет вовсе,
+  // и числа описывали не то состояние (первый замер с телефона это и показал).
+  const dbg = app.querySelector('#map-debug');
+  if (dbg) {
+    const paint = () => {
+      const d = mapDiagnostics();
+      dbg.textContent = Object.entries(d).map(([k, v]) => `${k}:${v}`).join(' ');
+    };
+    paint();
+    [200, 800, 2000].forEach(ms => setTimeout(() => dbg.isConnected && paint(), ms));
+  }
 }
 
 // §7.1/§7.2: легенда обязана явно различать «Вода» и «Туалеты».
@@ -916,13 +936,6 @@ function renderSettingsView() {
               : t('settings_demo_reports_empty')}</span>
           </span>
           <button class="btn-secondary" id="clear-reports-btn" ${localReportsCount ? '' : 'disabled'}>${t('settings_demo_reports_clear')}</button>
-        </div>
-        <div class="settings-row">
-          ${icons.map}
-          <span class="grow">${t('settings_map_debug')}
-            <span class="sub">${esc(Object.entries(mapDiagnostics()).map(([k, v]) => `${k}: ${v}`).join(' · '))}</span>
-            <span class="sub">${t('settings_map_debug_hint')}</span>
-          </span>
         </div>
       </div>
 

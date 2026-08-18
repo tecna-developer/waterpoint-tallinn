@@ -121,10 +121,6 @@ const dict = {
   // туда не попадают (это утверждение верно), но сам факт стороннего запроса — должен
   // быть виден в тексте о приватности, а не только в комментарии к коду.
   settings_privacy_text: { et: 'Täpset asukohta ei salvestata ega saadeta serverisse. Lemmikud, vahemälu ja demo-märked hoitakse ainult seadmes. Aadressiotsing, mida rakenduse enda punktide ja linnaosade seast ei leitud, saadab sisestatud teksti OpenStreetMapi Nominatimi geokodeerimisteenusesse.', en: 'Precise location is never stored or sent to a server. Favorites, cache and demo markers live on the device only. Searching for an address not matched among the app’s own points and districts sends the typed text to OpenStreetMap’s Nominatim geocoding service.', ru: 'Точная геолокация не сохраняется и не отправляется на сервер. Избранное, кеш и демонстрационные отметки хранятся только на устройстве. Поиск адреса, не найденного среди точек и районов приложения, отправляет введённый текст в сервис геокодирования OpenStreetMap (Nominatim).' },
-  // Временная диагностика: сбой с пропадающей картой воспроизводится только на реальном
-  // телефоне, поэтому состояние надо показать прямо в интерфейсе.
-  settings_map_debug: { et: 'Kaardi olek', en: 'Map state', ru: 'Состояние карты' },
-  settings_map_debug_hint: { et: 'Kui kaart on tühi, saada need numbrid.', en: 'If the map is blank, send these numbers.', ru: 'Если карта пустая — пришлите эти цифры.' },
   settings_demo_reports: { et: 'Demo-märked', en: 'Demo problem markers', ru: 'Демонстрационные отметки' },
   settings_demo_reports_count: { et: 'Seadmesse salvestatud: {n}', en: 'Saved on this device: {n}', ru: 'Сохранено на устройстве: {n}' },
   settings_demo_reports_empty: { et: 'Salvestatud märked puuduvad', en: 'No saved markers', ru: 'Сохранённых отметок нет' },
