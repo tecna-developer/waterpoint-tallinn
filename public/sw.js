@@ -1,9 +1,25 @@
 // Кеш оболочки приложения (FR-08: офлайн-доступ к списку/карточкам; тайлы карт не кешируем)
 // версию поднимаем при каждом релизе — иначе установленное PWA живёт на старой оболочке
-const CACHE = 'wpt-shell-v3';
+const CACHE = 'wpt-shell-v4';
+
+// В кеш кладём не только HTML, но и файлы сборки, на которые он ссылается. Иначе
+// оболочка неполна: при запуске PWA приходит свежий index.html с новыми хешами, а сам
+// бандл ещё не разошёлся по CDN или запрос сорвался — скрипта нет, кеш пуст, экран белый.
+// Хеши заранее неизвестны (их даёт Vite), поэтому вычитываем их из самого index.html.
+async function precacheShell() {
+  const cache = await caches.open(CACHE);
+  await cache.addAll(['./', './index.html']);
+  try {
+    const html = await (await fetch('./index.html', { cache: 'reload' })).text();
+    const assets = [...html.matchAll(/(?:src|href)="(\.?\/?assets\/[^"]+)"/g)].map(m => m[1]);
+    // по одному: один недоступный файл не должен отменить кеширование остальных,
+    // как это делает cache.addAll()
+    await Promise.all(assets.map(a => cache.add(a).catch(() => {})));
+  } catch { /* нет сети при установке — оболочка доберётся на первом онлайн-запуске */ }
+}
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', './index.html'])).then(() => self.skipWaiting()));
+  e.waitUntil(precacheShell().then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
