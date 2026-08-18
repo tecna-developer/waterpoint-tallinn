@@ -38,6 +38,7 @@ const ui = {
 let map = null;
 let mapEl = null;              // контейнер карты переживает ререндеры (см. mountMap)
 let mapResizeObserver = null;  // следит за фактическим размером контейнера (см. mountMap)
+let tileLayer = null;          // нужен, чтобы принудительно перезапросить тайлы (см. refreshMapAfterResume)
 let markerLayer = null;
 let userMarker = null;
 let markerSig = null;          // подпись набора маркеров — не перерисовываем без нужды
@@ -430,7 +431,7 @@ function mountMap(slot) {
   if (!map) {
     map = L.map(mapEl, { zoomControl: false, attributionControl: true })
       .setView(ui.mapCenter, ui.mapZoom);
-    const tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    const tiles = tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; OpenStreetMap, &copy; CARTO',
       maxZoom: 19
     }).addTo(map);
@@ -495,6 +496,32 @@ function ensureMapSized() {
   const known = map.getSize();
   if (known.x === w && known.y === h) return; // размеры сходятся, трогать нечего
   map.invalidateSize({ animate: false });
+}
+
+// Возврат приложения из фона — отдельный случай, который ensureMapSized закрыть НЕ может
+// по своему устройству: она выходит, когда размеры совпадают. А при подъёме PWA из фона
+// размер как раз корректен — Android выгружает уже отрисованные тайлы, DOM-узлы остаются,
+// но картинок в них нет. Leaflet считает тайлы загруженными и ничего не перезапрашивает:
+// ни ошибки, ни баннера, просто пустое полотно. Здесь нужен именно перезапрос.
+function refreshMapAfterResume() {
+  if (!map || !mapEl || !mapEl.isConnected) return;
+  ensureMapSized();                 // на случай, если размер всё-таки разъехался
+  if (tileLayer) tileLayer.redraw();
+}
+
+// Диагностика состояния карты — читаемая с экрана, без подключения телефона к компьютеру.
+// Нужна, потому что этот сбой воспроизводится только на реальном устройстве: в песочнице
+// страница всегда скрыта (document.hidden === true) и ветка «возврат из фона» недостижима.
+export function mapDiagnostics() {
+  if (!map || !mapEl) return { map: 'не создана' };
+  const known = map.getSize();
+  return {
+    container: `${mapEl.clientWidth}×${mapEl.clientHeight}`,
+    leaflet: `${known.x}×${known.y}`,
+    tiles: document.querySelectorAll('.leaflet-tile').length,
+    loaded: document.querySelectorAll('.leaflet-tile-loaded').length,
+    hidden: document.hidden
+  };
 }
 
 function syncMarkers(pts) {
@@ -890,6 +917,13 @@ function renderSettingsView() {
           </span>
           <button class="btn-secondary" id="clear-reports-btn" ${localReportsCount ? '' : 'disabled'}>${t('settings_demo_reports_clear')}</button>
         </div>
+        <div class="settings-row">
+          ${icons.map}
+          <span class="grow">${t('settings_map_debug')}
+            <span class="sub">${esc(Object.entries(mapDiagnostics()).map(([k, v]) => `${k}: ${v}`).join(' · '))}</span>
+            <span class="sub">${t('settings_map_debug_hint')}</span>
+          </span>
+        </div>
       </div>
 
       <div class="eco-card standalone">${icons.leaf}<div><strong>${t('eco_title')}</strong><span>${t('eco_text')}</span></div></div>
@@ -1176,9 +1210,9 @@ async function start() {
   // приложении не было. Сама проверка идемпотентна: если размеры сходятся, она ничего
   // не делает (см. ensureMapSized).
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) ensureMapSized();
+    if (!document.hidden) refreshMapAfterResume();
   });
-  window.addEventListener('pageshow', ensureMapSized);        // возврат из bfcache
+  window.addEventListener('pageshow', refreshMapAfterResume); // возврат из bfcache
   window.addEventListener('orientationchange', () => setTimeout(ensureMapSized, 150));
   window.addEventListener('resize', ensureMapSized);
   if ('serviceWorker' in navigator && !location.hostname.includes('localhost')) {
