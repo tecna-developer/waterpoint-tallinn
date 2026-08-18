@@ -498,13 +498,37 @@ function mountMap(slot) {
 // них. Поэтому проверяем не «случилось ли событие», а сам факт расхождения размеров.
 function ensureMapSized() {
   if (!map || !mapEl || !mapEl.isConnected) return;
+  const slot = mapEl.parentElement;
+
+  // Если подпорка уже стоит — снимаем и смотрим, держится ли высота сама. Проверять
+  // это обязательно ДО остальных измерений: иначе «высота ненулевая, значит всё
+  // хорошо, подпорку можно убрать» — и она тут же снимается, высота снова падает в 0,
+  // следующий вызов подставляет её заново. Получается колебание, а итоговое состояние
+  // зависит от того, какой вызов оказался последним.
+  if (slot && slot.style.height) {
+    const forced = slot.style.height;
+    slot.style.height = '';
+    if (!mapEl.clientHeight) slot.style.height = forced;   // без подпорки снова 0 — вернуть
+  }
+
   const w = mapEl.clientWidth, h = mapEl.clientHeight;
-  // Ранний выход при нулевом размере был ошибкой: именно в этом состоянии карта и
-  // ломается (замер с телефона: container 375×0 при leaflet 359×4121), то есть защита
-  // гарантированно бездействовала в единственном случае, ради которого писалась.
-  // Нулевая высота контейнера — не повод молчать, а сам симптом: сообщаем о нём.
+
+  // Нулевая высота — не «раскладка ещё не готова», а сам сбой: замер с экрана карты на
+  // телефоне дал container 375×0 при живом остальном интерфейсе. Высота приходит по
+  // цепочке flex (#app -> #view-root -> .map-view -> слот); когда цепочка рвётся, ждать
+  // её починки бессмысленно — задаём высоту слоту явно, из фактически доступного места.
+  if (!h && slot) {
+    const avail = Math.round(viewRoot.getBoundingClientRect().height
+      - (viewRoot.querySelector('.bottom-nav')?.getBoundingClientRect().height || 0));
+    if (avail > 0) {
+      ui.mapZeroSize = true;
+      slot.style.height = avail + 'px';
+      map.invalidateSize({ animate: false });
+      return;
+    }
+  }
   if (!w || !h) { ui.mapZeroSize = true; return; }
-  if (ui.mapZeroSize) ui.mapZeroSize = false;
+  ui.mapZeroSize = false;
   const known = map.getSize();
   if (known.x === w && known.y === h) return; // размеры сходятся, трогать нечего
   map.invalidateSize({ animate: false });
@@ -541,12 +565,21 @@ export function mapDiagnostics() {
   // «загружен, но прозрачен» — единственное состояние, которое не видно ни по размерам,
   // ни по счётчикам: карта пустая, а все прочие числа выглядят здоровыми
   const invisible = loadedTiles.filter(x => x.style.opacity !== '' && Number(x.style.opacity) < 1).length;
+  // Высота контейнера приходит по цепочке flex: #app -> #view-root -> .map-view -> слот.
+  // Замер с телефона показал container 375×0 при живом интерфейсе, значит рвётся именно
+  // цепочка — а какое звено, по одному числу не понять.
+  const hOf = sel => {
+    const el = sel === '#app' ? app : viewRoot.querySelector(sel);
+    return el ? Math.round(el.getBoundingClientRect().height) : '—';
+  };
   return {
     container: `${mapEl.clientWidth}×${mapEl.clientHeight}`,
     leaflet: `${known.x}×${known.y}`,
     tiles: document.querySelectorAll('.leaflet-tile').length,
     loaded: loadedTiles.length,
     invisible,
+    chain: `app${Math.round(app.getBoundingClientRect().height)}/root${Math.round(viewRoot.getBoundingClientRect().height)}/view${hOf('.map-view')}/slot${hOf('#map-slot')}/nav${hOf('.bottom-nav')}`,
+    dvh: Math.round(window.innerHeight),
     hidden: document.hidden
   };
 }
