@@ -10,7 +10,8 @@
     "test:sw": "node scripts/test-sw.mjs public/sw.js"
   },
   "dependencies": {
-    "leaflet": "^1.9.4"
+    "leaflet": "^1.9.4",
+    "leaflet.markercluster": "^1.5.3"
   },
   "devDependencies": {
     "vite": "^5.4.0"

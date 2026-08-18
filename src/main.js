@@ -1,5 +1,10 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+// Только базовый CSS плагина (позиционирование и анимации). Оформление кластеров —
+// своё, на дизайн-токенах: стандартная тема плагина не знает ни про тёмную тему,
+// ни про требования к контрасту, ни про различение «вода / туалеты».
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster';
 import './styles.css';
 import { t, getLang, setLang, LANGS, pointsCount, localeTag } from './i18n.js';
 import { icons, markerSvg, thumbSvg } from './icons.js';
@@ -43,6 +48,7 @@ let tileLayer = null;          // нужен, чтобы принудитель�
 let markerLayer = null;
 let userMarker = null;
 let markerSig = null;          // подпись набора маркеров — не перерисовываем без нужды
+let selectedMarker = null;     // выбранная точка вне кластера, поверх остальных (см. syncMarkers)
 let miniMap = null;            // мини-карта карточки точки; закрывается в render() ниже
 let lastRenderedView = null;   // для восстановления scrollTop при ререндере той же вью
 let savedScrollTop = 0;
@@ -457,7 +463,13 @@ function mountMap(slot) {
       ui.tilesFailed = false;
       render();
     });
-    markerLayer = L.layerGroup().addTo(map);
+    markerLayer = L.markerClusterGroup({
+      maxClusterRadius: 55,          // кучность: в центре Таллина точки стоят вплотную
+      showCoverageOnHover: false,    // подсветка охвата — мышиный приём, на телефоне бесполезна
+      spiderfyOnMaxZoom: true,       // совпадающие координаты (несколько туалетов в одной точке)
+      chunkedLoading: true,          // 174 маркера не должны блокировать поток одним куском
+      iconCreateFunction: clusterIcon
+    }).addTo(map);
     map.on('moveend', () => { const c = map.getCenter(); ui.mapCenter = [c.lat, c.lng]; ui.mapZoom = map.getZoom(); });
     map.on('click', e => {
       if (ui.pickMode) {
@@ -586,13 +598,31 @@ export function mapDiagnostics() {
   };
 }
 
+// §7.2 требует не смешивать типы точек визуально, поэтому кластер называет свой состав:
+// однородный окрашен в цвет своей категории, смешанный — нейтрален. Иначе синий кластер
+// из одних туалетов вводил бы в заблуждение ровно так же, как синий маркер туалета.
+function clusterIcon(cluster) {
+  const children = cluster.getAllChildMarkers();
+  const cats = new Set(children.map(m => m.options.wptCategory));
+  const kind = cats.size === 1 ? [...cats][0] : 'mixed';
+  const n = cluster.getChildCount();
+  // размер растёт со счётчиком, но не бесконечно — иначе крупные кластеры закрывают карту
+  const size = n < 10 ? 34 : n < 50 ? 40 : 46;
+  return L.divIcon({
+    className: `wp-cluster wp-cluster-${kind}`,
+    html: `<span>${n}</span>`,
+    iconSize: [size, size]
+  });
+}
+
 function syncMarkers(pts) {
   const sig = ui.selectedId + '|' + pts.map(p => p.id + p.status).join(',');
   if (sig !== markerSig) {
     markerSig = sig;
     markerLayer.clearLayers();
-    pts.forEach(p => {
-      const selected = p.id === ui.selectedId;
+    if (selectedMarker) { selectedMarker.remove(); selectedMarker = null; }
+
+    const makeMarker = (p, selected) => {
       const size = selected ? 44 : 32;
       const m = L.marker([p.lat, p.lng], {
         icon: L.divIcon({
@@ -601,11 +631,23 @@ function syncMarkers(pts) {
           iconSize: [size, size], iconAnchor: [size / 2, size]
         }),
         keyboard: true,
+        wptCategory: p.category,          // читает clusterIcon, чтобы окрасить кластер
+        zIndexOffset: selected ? 1000 : 0,
         title: `${pointName(p)} — ${t('cat_' + p.category)}`
       });
       m.on('click', () => { ui.selectedId = p.id; render(); });
-      m.addTo(markerLayer);
-    });
+      return m;
+    };
+
+    // Выбранная точка живёт вне кластера, прямо на карте: иначе она пропадала бы
+    // внутри «кружка со счётчиком» ровно тогда, когда её и нужно видеть — после
+    // выбора из поиска, из списка или по ссылке ?p=<id>.
+    const clustered = [];
+    for (const p of pts) {
+      if (p.id === ui.selectedId) selectedMarker = makeMarker(p, true).addTo(map);
+      else clustered.push(makeMarker(p, false));
+    }
+    markerLayer.addLayers(clustered);   // разом: поштучное добавление на 174 точки заметно медленнее
   }
   if (userMarker) { userMarker.remove(); userMarker = null; }
   if (state.userPos) {
