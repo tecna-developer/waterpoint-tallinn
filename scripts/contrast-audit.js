@@ -88,6 +88,32 @@ export function audit(root = document.body) {
   return [...seen.values()].sort((a, b) => a.ratio - b.ratio);
 }
 
+// Аудит видит только то, что сейчас на экране, и дважды из-за этого промахнулся:
+// янтарный баннер «источник недоступен» не появлялся, пока синхронизация проходила,
+// а бейджи проблемных статусов — пока таких точек нет. Поэтому редкие состояния
+// проверяем принудительно: вставляем их разметку во временный контейнер.
+export function auditHiddenStates() {
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;left:-9999px;top:0;width:380px';
+  probe.innerHTML = `
+    <div class="banners">
+      <div class="banner warn">источник недоступен</div>
+      <div class="banner info">сезонное предупреждение</div>
+    </div>
+    <div class="cards"><div class="card"><div class="info"><div class="meta">
+      <span class="badge reported_issue">есть сообщение о проблеме</span>
+      <span class="badge temporarily_unavailable">временно недоступна</span>
+      <span class="badge seasonal_closed">сезонно закрыта</span>
+      <span class="badge available">доступна</span>
+    </div></div></div></div>
+    <div class="detail-body"><div class="form-error">текст ошибки формы</div>
+      <button class="report-link">сообщить о проблеме</button></div>`;
+  document.body.appendChild(probe);
+  const found = audit(probe);
+  probe.remove();
+  return found;
+}
+
 export async function run(opts = {}) {
   const wait = ms => new Promise(r => setTimeout(r, ms));
   const views = opts.views || ['map', 'list', 'saved', 'settings'];
@@ -101,6 +127,7 @@ export async function run(opts = {}) {
       await wait(350);
       found.push(...audit().map(x => ({ ...x, view: v })));
     }
+    found.push(...auditHiddenStates().map(x => ({ ...x, view: 'скрытые состояния' })));
     report[theme] = found;
   }
   const total = report.light.length + report.dark.length;

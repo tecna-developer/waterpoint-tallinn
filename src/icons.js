@@ -49,10 +49,12 @@ const CATEGORY_COLOR = { water_tap: '#1a76a8', public_toilet: '#2f7355' };
 // точки, но не её текущую работоспособность) — красить в этот статус всю карту нечестно
 // и в другую сторону: превращает редкий сигнал в фоновый шум.
 const EXCEPTION_STATUSES = new Set(['seasonal_closed', 'reported_issue', 'temporarily_unavailable']);
+// Заливки маркеров одинаковы в обеих темах, а глиф на них белый — значит, оттенок
+// обязан держать 4.5 с белым сам по себе. Прежние давали 2.67 / 2.23 / 3.48.
 const STATUS_COLOR = {
-  seasonal_closed: '#90a0b4',
-  reported_issue: '#f2994a',
-  temporarily_unavailable: '#eb5757'
+  seasonal_closed: '#5c6b7d',              // 5.45 с белым
+  reported_issue: '#a85800',               // 5.17, совпадает с --amber светлой темы
+  temporarily_unavailable: '#c0392b'       // 5.44, совпадает с --red светлой темы
 };
 
 // Силуэты: капля = вода, скруглённый пин с подписью WC = туалет.
