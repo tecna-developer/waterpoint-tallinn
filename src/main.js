@@ -430,7 +430,13 @@ function mountMap(slot) {
   slot.appendChild(mapEl);
 
   if (!map) {
-    map = L.map(mapEl, { zoomControl: false, attributionControl: true })
+    // fadeAnimation: false — тайлы появляются сразу, без плавного проявления.
+    // Проявление Leaflet делает через requestAnimationFrame, а у свёрнутого PWA
+    // кадровый цикл останавливается: анимация повисает незавершённой, и тайлы остаются
+    // с opacity 0 — загруженными, правильного размера и полностью невидимыми. Именно
+    // такую картину дала диагностика с телефона (container и leaflet совпадают,
+    // tiles 12, loaded 12) при пустой карте.
+    map = L.map(mapEl, { zoomControl: false, attributionControl: true, fadeAnimation: false })
       .setView(ui.mapCenter, ui.mapZoom);
     const tiles = tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; OpenStreetMap, &copy; CARTO',
@@ -512,7 +518,17 @@ function ensureMapSized() {
 function refreshMapAfterResume() {
   if (!map || !mapEl || !mapEl.isConnected) return;
   ensureMapSized();                 // на случай, если размер всё-таки разъехался
+  unstickTileOpacity();
   if (tileLayer) tileLayer.redraw();
+}
+
+// Страховка к fadeAnimation: false. Тайлы, загруженные ДО этой правки (или доставшиеся
+// от прерванной анимации), могут висеть с inline opacity 0 — видимых признаков сбоя при
+// этом нет: размеры верны, tiles и loaded в норме, а на экране пусто.
+function unstickTileOpacity() {
+  document.querySelectorAll('.leaflet-tile-loaded').forEach(tile => {
+    if (tile.style.opacity !== '' && Number(tile.style.opacity) < 1) tile.style.opacity = '1';
+  });
 }
 
 // Диагностика состояния карты — читаемая с экрана, без подключения телефона к компьютеру.
@@ -521,11 +537,16 @@ function refreshMapAfterResume() {
 export function mapDiagnostics() {
   if (!map || !mapEl) return { map: 'не создана' };
   const known = map.getSize();
+  const loadedTiles = [...document.querySelectorAll('.leaflet-tile-loaded')];
+  // «загружен, но прозрачен» — единственное состояние, которое не видно ни по размерам,
+  // ни по счётчикам: карта пустая, а все прочие числа выглядят здоровыми
+  const invisible = loadedTiles.filter(x => x.style.opacity !== '' && Number(x.style.opacity) < 1).length;
   return {
     container: `${mapEl.clientWidth}×${mapEl.clientHeight}`,
     leaflet: `${known.x}×${known.y}`,
     tiles: document.querySelectorAll('.leaflet-tile').length,
-    loaded: document.querySelectorAll('.leaflet-tile-loaded').length,
+    loaded: loadedTiles.length,
+    invisible,
     hidden: document.hidden
   };
 }
