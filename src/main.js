@@ -555,9 +555,11 @@ function unstickTileOpacity() {
   });
 }
 
-// Диагностика состояния карты — читаемая с экрана, без подключения телефона к компьютеру.
-// Нужна, потому что этот сбой воспроизводится только на реальном устройстве: в песочнице
-// страница всегда скрыта (document.hidden === true) и ветка «возврат из фона» недостижима.
+// Диагностика состояния карты. Строка с этими числами какое-то время висела прямо на
+// экране карты — только так удалось поймать причину сбоя, который воспроизводится
+// исключительно на реальном устройстве. С экрана убрана, но сама функция оставлена и
+// доступна как window.wptMapDiagnostics(): этот класс сбоев наверняка вернётся, а
+// собирать замер заново дороже, чем сохранить готовый.
 export function mapDiagnostics() {
   if (!map || !mapEl) return { map: 'не создана' };
   const known = map.getSize();
@@ -631,7 +633,6 @@ function renderMapView() {
       ${bannersHtml()}
       ${sel ? mapCardHtml(sel) : ''}
       ${toastHtml()}
-      <div class="map-debug" id="map-debug"></div>
     </div>
     ${navHtml()}`;
 
@@ -654,18 +655,6 @@ function renderMapView() {
   mountMap(app.querySelector('#map-slot'));
   syncMarkers(pts);
 
-  // Диагностика читается прямо на экране карты — то есть в тот момент, когда карта
-  // действительно пустая. В настройках она врала: там карты в разметке нет вовсе,
-  // и числа описывали не то состояние (первый замер с телефона это и показал).
-  const dbg = app.querySelector('#map-debug');
-  if (dbg) {
-    const paint = () => {
-      const d = mapDiagnostics();
-      dbg.textContent = Object.entries(d).map(([k, v]) => `${k}:${v}`).join(' ');
-    };
-    paint();
-    [200, 800, 2000].forEach(ms => setTimeout(() => dbg.isConnected && paint(), ms));
-  }
 }
 
 // §7.1/§7.2: легенда обязана явно различать «Вода» и «Туалеты».
@@ -1286,5 +1275,8 @@ async function start() {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
 }
+
+// см. комментарий у mapDiagnostics: доступ из консоли для разбора «карта пустая»
+window.wptMapDiagnostics = mapDiagnostics;
 
 start();

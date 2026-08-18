@@ -525,15 +525,6 @@ input, textarea { font-family: inherit; font-size: 15px; color: var(--text); }
 .onb-actions .btn-primary { width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .onb-actions .btn-ghost { color: var(--text-muted); font-weight: 600; padding: 12px; }
 
-/* Временная диагностика состояния карты — читается прямо на экране карты, когда она
-   пустая. Удалить вместе с #map-debug, как только причина сбоя подтвердится. */
-.map-debug {
-  position: absolute; left: 12px; right: 12px; bottom: 96px; z-index: 690;
-  font-size: 10.5px; font-family: ui-monospace, monospace; text-align: center;
-  color: var(--text); background: rgba(255,255,255,.9); border-radius: 6px; padding: 3px 6px;
-  pointer-events: none;
-}
-:root[data-theme='dark'] .map-debug { background: rgba(15,23,35,.9); }
 
 /* ---------- тост ---------- */
 .toast {
