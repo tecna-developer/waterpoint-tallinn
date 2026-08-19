@@ -14,6 +14,10 @@ import {
   track, getTheme, setTheme, districts, origin, isOnboarded, setOnboarded
 } from './data.js';
 
+// Зум, на котором точки видны поштучно, а не кластерами: подобран под кластеризацию
+// (maxClusterRadius 55) — на 12 центр города сворачивается в кружки со счётчиками.
+const NEARBY_ZOOM = 15;
+
 const app = document.getElementById('app');
 // render() перезаписывает только viewRoot.innerHTML — шторки (app.appendChild(overlay))
 // висят соседями viewRoot и не пропадают, если фоновый sync()/online-событие вызовет
@@ -37,8 +41,9 @@ const ui = {
   mapZeroSize: false,          // контейнер карты схлопнулся в нулевую высоту (см. ensureMapSized)
   pickMode: false,             // FR-01: ручной выбор точки отсчёта на карте
   toast: null,
+  mapMovedByUser: false,       // карту двигали руками — автонаведение больше не вмешивается
   mapCenter: [59.437, 24.7536],
-  mapZoom: 12
+  mapZoom: 12                  // весь город: стартовый вид, пока не известны координаты
 };
 
 let map = null;
@@ -158,7 +163,16 @@ function requestGeo(interactive = false) {
       // Явный тап по «Моё местоположение» — пользователь просит вернуть точку отсчёта
       // к себе; без этого searchPos продолжал бы перебивать GPS (см. origin() в data.js).
       if (interactive) state.searchPos = null;
-      if (map && interactive) map.setView([state.userPos.lat, state.userPos.lng], 14);
+      // Приложение отвечает на вопрос «где ближайшая точка», поэтому открываться на
+      // общегородском зуме, где всё свёрнуто в кластеры, бессмысленно: как только
+      // координаты известны, показываем окрестности пользователя. Только один раз и
+      // только пока карту не двигали руками — иначе автонаведение отменяло бы то, что
+      // пользователь сам выбрал.
+      if (interactive || !ui.mapMovedByUser) {
+        ui.mapCenter = [state.userPos.lat, state.userPos.lng];
+        ui.mapZoom = NEARBY_ZOOM;
+        if (map) map.setView(ui.mapCenter, ui.mapZoom, { animate: false });
+      }
       render();
     },
     () => { state.geoDenied = true; render(); },
@@ -230,6 +244,10 @@ async function buildSuggestions(q, box, input) {
       state.searchPos = { lat: +b.dataset.lat, lng: +b.dataset.lng, label: b.textContent };
       ui.mapCenter = [+b.dataset.lat, +b.dataset.lng]; ui.mapZoom = 15;
     }
+    // Выбор в поиске — такое же осознанное указание, куда смотреть, как и жест по карте.
+    // Без этой пометки запоздавшая геолокация перебросила бы карту с найденного адреса
+    // обратно к пользователю, отменив то, что он только что искал.
+    ui.mapMovedByUser = true;
     ui.search = '';
     render();
   }));
@@ -471,6 +489,12 @@ function mountMap(slot) {
       iconCreateFunction: clusterIcon
     }).addTo(map);
     map.on('moveend', () => { const c = map.getCenter(); ui.mapCenter = [c.lat, c.lng]; ui.mapZoom = map.getZoom(); });
+    // Отличаем «пользователь сам подвинул карту» от программной установки вида: только
+    // первое должно отменять автонаведение на геопозицию. Событиями Leaflet (zoomend,
+    // moveend) это не различить — они одинаково приходят и на map.setView() из кода,
+    // из-за чего автонаведение отменяло бы само себя. Поэтому слушаем исходный ввод.
+    ['pointerdown', 'wheel', 'dblclick'].forEach(ev =>
+      mapEl.addEventListener(ev, () => { ui.mapMovedByUser = true; }, { passive: true }));
     map.on('click', e => {
       if (ui.pickMode) {
         // FR-01: геолокация недоступна — точку отсчёта ставит сам пользователь
@@ -929,6 +953,8 @@ function renderDetailView() {
   app.querySelector('#detail-back').addEventListener('click', () => history.back());
   app.querySelector('#detail-fav').addEventListener('click', () => { toggleFavorite(p.id); render(); });
   app.querySelector('#detail-map-link').addEventListener('click', () => {
+    // как и выбор в поиске: пользователь указал, что показать — автонаведение не вмешивается
+    ui.mapMovedByUser = true;
     ui.view = 'map'; ui.selectedId = p.id; ui.mapCenter = [p.lat, p.lng]; ui.mapZoom = 16; render();
   });
   app.querySelector('#route-btn').addEventListener('click', () => {
