@@ -686,10 +686,16 @@ function renderMapView() {
   viewRoot.innerHTML = `
     <div class="view map-view no-scroll">
       <div id="map-slot"></div>
-      ${searchBarHtml()}
-      <div class="map-controls">
-        ${categorySegHtml()}
-        ${chipsHtml()}
+      <!-- Поиск и фильтры лежат в одном потоке поверх карты. Раньше это были два
+           независимо спозиционированных блока с подобранными вручную отступами сверху,
+           и стоило строке поиска стать выше (крупный системный шрифт, другой масштаб),
+           как они наезжали друг на друга. -->
+      <div class="map-overlay-top">
+        ${searchBarHtml()}
+        <div class="map-controls">
+          ${categorySegHtml()}
+          ${chipsHtml()}
+        </div>
       </div>
       <div class="map-fabs">
         <button class="fab ${ui.legendOpen ? 'on' : ''}" id="fab-legend" aria-label="${t('legend_show')}" aria-expanded="${ui.legendOpen}">${icons.layers}</button>

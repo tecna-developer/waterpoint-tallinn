@@ -125,7 +125,10 @@ input, textarea { font-family: inherit; font-size: 15px; color: var(--text); }
 
 /* ---------- поиск ---------- */
 .search-wrap { position: relative; padding: 10px 16px 0; }
-.map-view .search-wrap { position: absolute; top: 10px; left: 0; right: 0; z-index: 700; padding: 0 12px; }
+/* Внутри .map-overlay-top строка поиска — обычный блок в потоке; position: relative
+   нужен только как система координат для выпадающих подсказок. */
+.map-view .search-wrap { position: relative; padding: 0; }
+.map-view .search-suggest { left: 0; right: 0; }
 .search-bar {
   display: flex; align-items: center; gap: 8px;
   background: var(--surface); border: 1px solid var(--border);
@@ -155,10 +158,14 @@ input, textarea { font-family: inherit; font-size: 15px; color: var(--text); }
 /* ---------- чипсы ---------- */
 .chips { display: flex; gap: 8px; padding: 10px 16px; overflow-x: auto; scrollbar-width: none; flex: none; }
 .chips::-webkit-scrollbar { display: none; }
-/* Над картой поиск и управление лежат слоями поверх полотна */
-.map-view .map-controls {
-  position: absolute; top: 60px; left: 0; right: 0; z-index: 650;
+/* Единственный спозиционированный слой над картой: всё внутри складывается потоком,
+   поэтому высота строки поиска больше ни на что не «настроена» числом. */
+.map-view .map-overlay-top {
+  position: absolute; top: 10px; left: 0; right: 0; z-index: 700;
   padding: 0 12px; display: flex; flex-direction: column; gap: 8px;
+}
+.map-view .map-controls {
+  display: flex; flex-direction: column; gap: 8px;
 }
 /* padding даёт место кольцу :focus-visible (2px offset + 3px), отрицательный margin
    ровно его компенсирует — положение чипов не меняется. Без этого горизонтальный
