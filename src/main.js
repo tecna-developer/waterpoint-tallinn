@@ -492,8 +492,20 @@ function mountMap(slot) {
     // с opacity 0 — загруженными, правильного размера и полностью невидимыми. Именно
     // такую картину дала диагностика с телефона (container и leaflet совпадают,
     // tiles 12, loaded 12) при пустой карте.
-    map = L.map(mapEl, { zoomControl: false, attributionControl: true, fadeAnimation: false })
-      .setView(ui.mapCenter, ui.mapZoom);
+    // Двойной тап по карте не приближал её на телефоне. Leaflet приближает по событию
+    // `dblclick`, а своей обработки касаний для этого у него нет — он ждёт, что событие
+    // синтезирует браузер. Safari этого не делает, когда контейнер объявляет
+    // `touch-action: none` (его ставит сам Leaflet), поэтому жест пропадал бесследно.
+    // На устройствах с грубым указателем берём распознавание на себя и отключаем
+    // встроенное, чтобы зум не сработал дважды, если Safari всё же пришлёт dblclick.
+    // `(pointer: coarse)` — именно основной способ ввода: на ноутбуке с тачскрином, но
+    // мышью, он false, и там остаётся родное поведение, проверенное на десктопе.
+    const касание = window.matchMedia('(pointer: coarse)').matches;
+    map = L.map(mapEl, {
+      zoomControl: false, attributionControl: true, fadeAnimation: false,
+      doubleClickZoom: !касание
+    }).setView(ui.mapCenter, ui.mapZoom);
+    if (касание) enableTapZoom(mapEl);
     const tiles = tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; OpenStreetMap, &copy; CARTO',
       maxZoom: 19
@@ -679,6 +691,37 @@ export function mapDiagnostics() {
 // Полностью отключать кластеризацию на близких зумах нельзя: в данных есть две группы
 // точно совпадающих координат (по три туалета на пляжах) и 13 пар ближе 15 м — без
 // группировки они просто наложились бы друг на друга и стали невыбираемыми.
+// Распознаём двойной тап сами (см. комментарий у создания карты). Пороги обычные для
+// платформ: 300 мс между тапами и 30 px разброса — палец не попадает дважды в точку.
+// Приближаем не к центру, а к месту тапа: пользователь показывает пальцем, куда смотреть.
+const TAP_INTERVAL = 300, TAP_SLOP = 30;
+function enableTapZoom(el) {
+  let прошлыйТап = 0, прошлыеXY = null;
+  el.addEventListener('touchend', e => {
+    // Только одиночное касание: два пальца — это щипок, им занимается Leaflet.
+    if (e.touches.length || e.changedTouches.length !== 1) return;
+    // Тап по маркеру или кластеру открывает точку и зумом быть не должен.
+    if (e.target.closest('.leaflet-marker-icon')) return;
+    const t = e.changedTouches[0];
+    const сейчас = Date.now();
+    const близко = прошлыеXY &&
+      Math.hypot(t.clientX - прошлыеXY[0], t.clientY - прошлыеXY[1]) < TAP_SLOP;
+    if (сейчас - прошлыйТап < TAP_INTERVAL && близко) {
+      прошлыйТап = 0; прошлыеXY = null;
+      const r = el.getBoundingClientRect();
+      const точка = map.containerPointToLatLng([t.clientX - r.left, t.clientY - r.top]);
+      // Без анимации — по той же причине, что fadeAnimation у тайлов и animate у
+      // кластеров: анимация идёт через requestAnimationFrame, а он в этом приложении
+      // уже трижды не доезжал до конца. Незавершённый зум оставил бы карту в
+      // промежуточном состоянии, что хуже мгновенного скачка.
+      map.setZoomAround(точка, map.getZoom() + 1, { animate: false });
+      ui.mapMovedByUser = true;   // это осознанный выбор вида, как жест и колесо
+    } else {
+      прошлыйТап = сейчас; прошлыеXY = [t.clientX, t.clientY];
+    }
+  }, { passive: true });
+}
+
 function clusterRadius(zoom) {
   if (zoom <= 12) return 60;   // весь город
   if (zoom === 13) return 45;
