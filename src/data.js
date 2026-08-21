@@ -43,8 +43,11 @@ export const state = {
   cachedAt: null,      // самая старая из дат слоёв — «данные не свежее, чем…»
   syncFailed: false,   // хотя бы один слой не ответил
   layers: {},          // category -> { cachedAt, syncFailed }
-  userPos: null,       // {lat,lng} — только в памяти, не сохраняется (приватность)
-  searchPos: null,     // {lat,lng,label}
+  gpsPos: null,        // {lat,lng} — физическая позиция устройства, только для точки на
+                        // карте; НЕ источник для origin() (см. activeOrigin ниже) —
+                        // только в памяти, не сохраняется (приватность)
+  activeOrigin: null,  // {kind:'gps'|'search'|'manual', lat, lng, label?} — единая точка
+                        // отсчёта для расстояний и сортировки
   geoDenied: false
 };
 
@@ -250,11 +253,12 @@ export function distanceM(a, b) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-// Явный выбор адреса/района/точки на карте — более сильный сигнал, чем фоновый GPS:
-// пользователь целенаправленно спрашивает «сколько отсюда», а не «сколько от меня».
-// GPS возвращается активной точкой отсчёта только явным нажатием «Моё местоположение»
-// (requestGeo(interactive=true) очищает searchPos — см. main.js).
-export function origin() { return state.searchPos || state.userPos || null; }
+// Единая точка отсчёта для расстояний и сортировки (search/manual/gps — см. activeOrigin
+// выше). Явный выбор адреса/района/точки на карте — более сильный сигнал, чем фоновый
+// GPS: пользователь целенаправленно спрашивает «сколько отсюда», а не «сколько от меня».
+// GPS становится активной точкой отсчёта только явным нажатием «Моё местоположение»
+// (requestGeo(interactive=true) — см. main.js) или когда до этого точки отсчёта не было.
+export function origin() { return state.activeOrigin; }
 
 export function withDistances(points) {
   const o = origin();

@@ -158,18 +158,23 @@ function requestGeo(interactive = false) {
   if (!('geolocation' in navigator)) { state.geoDenied = true; render(); return; }
   navigator.geolocation.getCurrentPosition(
     pos => {
-      state.userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      state.gpsPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       state.geoDenied = false;
       // Явный тап по «Моё местоположение» — пользователь просит вернуть точку отсчёта
-      // к себе; без этого searchPos продолжал бы перебивать GPS (см. origin() в data.js).
-      if (interactive) state.searchPos = null;
+      // к себе, поэтому всегда перебивает то, что было активно (поиск/ручной выбор).
+      // Фоновый вызов при старте (interactive=false) не должен перебивать явный выбор —
+      // трогаем activeOrigin только если он ещё не задан или уже был GPS (тогда просто
+      // освежаем координаты).
+      if (interactive || !state.activeOrigin || state.activeOrigin.kind === 'gps') {
+        state.activeOrigin = { kind: 'gps', lat: state.gpsPos.lat, lng: state.gpsPos.lng };
+      }
       // Приложение отвечает на вопрос «где ближайшая точка», поэтому открываться на
       // общегородском зуме, где всё свёрнуто в кластеры, бессмысленно: как только
       // координаты известны, показываем окрестности пользователя. Только один раз и
       // только пока карту не двигали руками — иначе автонаведение отменяло бы то, что
       // пользователь сам выбрал.
       if (interactive || !ui.mapMovedByUser) {
-        ui.mapCenter = [state.userPos.lat, state.userPos.lng];
+        ui.mapCenter = [state.gpsPos.lat, state.gpsPos.lng];
         ui.mapZoom = NEARBY_ZOOM;
         if (map) map.setView(ui.mapCenter, ui.mapZoom, { animate: false });
       }
@@ -231,17 +236,17 @@ async function buildSuggestions(q, box, input) {
     track('search', { q });
     if (b.dataset.point) {
       const p = findPoint(b.dataset.point);
-      state.searchPos = { lat: p.lat, lng: p.lng, label: pointName(p) };
+      state.activeOrigin = { kind: 'search', lat: p.lat, lng: p.lng, label: pointName(p) };
       ui.selectedId = p.id;
       ui.mapCenter = [p.lat, p.lng]; ui.mapZoom = 15;
     } else if (b.dataset.district) {
       const dpts = state.points.filter(p => p.district === b.dataset.district);
       const lat = dpts.reduce((s, p) => s + p.lat, 0) / dpts.length;
       const lng = dpts.reduce((s, p) => s + p.lng, 0) / dpts.length;
-      state.searchPos = { lat, lng, label: b.dataset.district };
+      state.activeOrigin = { kind: 'search', lat, lng, label: b.dataset.district };
       ui.mapCenter = [lat, lng]; ui.mapZoom = 13;
     } else {
-      state.searchPos = { lat: +b.dataset.lat, lng: +b.dataset.lng, label: b.textContent };
+      state.activeOrigin = { kind: 'search', lat: +b.dataset.lat, lng: +b.dataset.lng, label: b.textContent };
       ui.mapCenter = [+b.dataset.lat, +b.dataset.lng]; ui.mapZoom = 15;
     }
     // Выбор в поиске — такое же осознанное указание, куда смотреть, как и жест по карте.
@@ -345,7 +350,7 @@ function bannersHtml() {
   }
   if (ui.pickMode) {
     html += `<div class="banner info">${icons.pin} ${t('pick_hint')}</div>`;
-  } else if (state.geoDenied && !state.searchPos) {
+  } else if (state.geoDenied && !state.activeOrigin) {
     html += `<div class="banner info">${icons.info} ${t('geo_denied')}
       <button id="banner-pick">${t('geo_denied_action')}</button></div>`;
   }
@@ -498,7 +503,7 @@ function mountMap(slot) {
     map.on('click', e => {
       if (ui.pickMode) {
         // FR-01: геолокация недоступна — точку отсчёта ставит сам пользователь
-        state.searchPos = { lat: e.latlng.lat, lng: e.latlng.lng, label: t('pick_map_point') };
+        state.activeOrigin = { kind: 'manual', lat: e.latlng.lat, lng: e.latlng.lng, label: t('pick_map_point') };
         ui.pickMode = false;
         showToast(t('pick_done'));
         return;
@@ -687,8 +692,8 @@ function syncMarkers(pts) {
     markerLayer.addLayers(clustered);   // разом: поштучное добавление на 174 точки заметно медленнее
   }
   if (userMarker) { userMarker.remove(); userMarker = null; }
-  if (state.userPos) {
-    userMarker = L.circleMarker([state.userPos.lat, state.userPos.lng],
+  if (state.gpsPos) {
+    userMarker = L.circleMarker([state.gpsPos.lat, state.gpsPos.lng],
       { radius: 7, color: '#fff', weight: 2, fillColor: '#1a76a8', fillOpacity: 1 }).addTo(map);
   }
 }
