@@ -25,7 +25,12 @@ export default defineConfig({
       injectManifest: {
         // png/svg/webmanifest — чтобы иконки PWA попадали в кеш на install, а не
         // подтягивались только после первого обращения
-        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}']
+        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
+        // og.png под этот шаблон попадает, но в оболочке ему делать нечего: баннер
+        // Open Graph читают краулеры соцсетей по прямой ссылке, само приложение не
+        // запрашивает его никогда. При этом весит он больше всех остальных файлов
+        // оболочки вместе взятых — то есть офлайн-установка ради него удваивалась.
+        globIgnores: ['og.png']
       }
     })
   ]
