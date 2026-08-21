@@ -1,0 +1,140 @@
+<!doctype html>
+<!--
+  Исходник public/og.png (1200×630) — баннер для Open Graph / Twitter.
+
+  Растр из кода не меняется, поэтому при смене фирменных цветов og.png молча остаётся
+  прежним; чтобы это не повторилось, разметка лежит в репозитории рядом с остальным.
+
+  Как пересобрать:
+    1. npm run dev
+    2. открыть http://localhost:5173/../scripts/og-source.html — проще скопировать файл
+       в public/ на время съёмки: cp scripts/og-source.html public/__og.html
+    3. снять скриншот элемента .og ровно 1200×630 (Playwright:
+       page.locator('.og').screenshot({ path: 'public/og.png', scale: 'css' }))
+       ОБЯЗАТЕЛЬНО дождавшись document.fonts.ready — иначе PT Serif подменится Georgia
+    4. удалить public/__og.html
+
+  Все цвета скопированы из src/styles.css и src/icons.js. При изменении --primary или
+  CATEGORY_COLOR правки нужны и здесь, и в og.png.
+-->
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=PT+Serif:wght@700&subset=cyrillic&display=block" rel="stylesheet">
+<style>
+  /* Токены — ровно те же значения, что в src/styles.css и src/icons.js.
+     Баннер обязан совпадать с приложением, а не «примерно попадать в тон». */
+  :root {
+    --primary: #1a76a8;         /* CATEGORY_COLOR.water_tap */
+    --toilet: #2f7355;          /* CATEGORY_COLOR.public_toilet */
+    --navy: #1b263b;            /* --text */
+    --muted: #5c6b7d;           /* --text-muted */
+    --surface: #ffffff;
+    --grid: #dbe7f1;
+    --font-heading: 'PT Serif', Georgia, serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { width: 1200px; height: 630px; overflow: hidden; }
+
+  .og {
+    position: relative; width: 1200px; height: 630px;
+    /* Заметно голубой, а не почти белый: превью в ленте соцсети лежит на белом фоне,
+       и выцветший баннер теряет там свои границы. */
+    background: linear-gradient(135deg, #dcecf9 0%, #eaf3fa 52%, #d6e8f6 100%);
+    font-family: var(--font-body);
+    display: flex; align-items: center; gap: 54px;
+    padding: 0 66px;
+  }
+
+  /* Тонкая сетка — та же метафора карты, что в приложении; держим её почти
+     невидимой, чтобы она читалась фоном, а не узором. */
+  .grid { position: absolute; inset: 0; }
+  .grid i { position: absolute; background: var(--grid); opacity: 0.9; }
+  .grid i.v { top: 0; bottom: 0; width: 1px; }
+  .grid i.h { left: 0; right: 0; height: 1px; }
+
+  .wave { position: absolute; left: 0; right: 0; bottom: 0; opacity: 0.85; }
+
+  /* Пара маркеров вместо одной капли: приложение показывает две категории точек,
+     и §7.2 запрещает смешивать их визуально — поэтому два раздельных знака своих
+     цветов, а не гибрид. Силуэты взяты один в один из markerSvg() в icons.js. */
+  .marks { position: relative; flex: none; width: 340px; height: 360px; }
+  .marks svg { position: absolute; filter: drop-shadow(0 10px 22px rgba(27, 38, 59, 0.18)); }
+  .marks .water { left: 0; top: 0; }
+  .marks .wc { right: 0; bottom: 34px; }
+
+  .copy { position: relative; padding-bottom: 6px; }
+  h1 {
+    font-family: var(--font-heading); font-weight: 700;
+    font-size: 78px; line-height: 1.02; letter-spacing: -0.015em;
+    color: var(--navy);
+  }
+  h1 span { display: block; color: var(--primary); }
+
+  .tagline {
+    margin-top: 22px; font-size: 25px; font-weight: 500;
+    color: var(--navy); letter-spacing: -0.005em;
+  }
+
+  .chips { display: flex; gap: 14px; margin-top: 30px; }
+  .chip {
+    background: var(--surface); border: 1px solid #d7e5f0; border-radius: 999px;
+    padding: 13px 24px; font-size: 19px; font-weight: 600; color: var(--primary);
+    box-shadow: 0 2px 8px rgba(27, 38, 59, 0.05);
+  }
+  .chip.plain { color: var(--muted); font-weight: 500; }
+
+  .url { margin-top: 34px; font-size: 19px; color: var(--muted); letter-spacing: 0.005em; }
+</style>
+</head>
+<body>
+<div class="og">
+  <div class="grid">
+    <i class="v" style="left:210px"></i>
+    <i class="v" style="left:560px"></i>
+    <i class="v" style="left:910px"></i>
+    <i class="h" style="top:150px"></i>
+    <i class="h" style="top:390px"></i>
+  </div>
+
+  <svg class="wave" width="1200" height="150" viewBox="0 0 1200 150" fill="none">
+    <path d="M0 96C180 58 320 122 520 104S840 40 1000 62s160 34 200 40v48H0z" fill="#c8dff2"/>
+  </svg>
+
+  <div class="marks">
+    <!-- капля = вода, скруглённый пин с «WC» = туалет (см. BODY в icons.js) -->
+    <svg class="water" width="272" height="272" viewBox="0 0 32 32">
+      <path d="M16 2C23 9.5 26 14 26 19a10 10 0 0 1-20 0c0-5 3-9.5 10-17z"
+            fill="#1a76a8" stroke="#fff" stroke-width="1.4"/>
+      <g transform="translate(0 3)">
+        <path d="m12 16 2.5 2.5 5.5-5.5" stroke="#fff" stroke-width="2" fill="none"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </svg>
+    <svg class="wc" width="168" height="168" viewBox="0 0 32 32">
+      <path d="M11 2h10a6 6 0 0 1 6 6v9a6 6 0 0 1-6 6h-3l-2 7-2-7h-3a6 6 0 0 1-6-6V8a6 6 0 0 1 6-6z"
+            fill="#2f7355" stroke="#fff" stroke-width="1.4"/>
+      <text x="16" y="9.6" text-anchor="middle" font-size="9.5" font-weight="700"
+            font-family="Inter, system-ui, sans-serif" fill="#fff"
+            transform="translate(0 3)">WC</text>
+    </svg>
+  </div>
+
+  <div class="copy">
+    <h1>WaterPoint<span>Tallinn</span></h1>
+    <!-- Прежняя подпись называла только краны, хотя туалетов в приложении 96 из 174.
+         Словарь тот же, что в meta description и settings_about_text. -->
+    <p class="tagline">Питьевые краны и общественные туалеты Таллина</p>
+    <div class="chips">
+      <div class="chip">Карта и маршрут</div>
+      <div class="chip">Фильтры</div>
+      <div class="chip plain">ET · EN · RU</div>
+    </div>
+    <p class="url">tecna-developer.github.io/waterpoint-tallinn</p>
+  </div>
+</div>
+</body>
+</html>
