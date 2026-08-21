@@ -665,9 +665,15 @@ function clusterIcon(cluster) {
   const n = cluster.getChildCount();
   // размер растёт со счётчиком, но не бесконечно — иначе крупные кластеры закрывают карту
   const size = n < 10 ? 34 : n < 50 ? 40 : 46;
+  // Число видно глазами, но скринридеру одного «27» недостаточно — оно не говорит ни
+  // что это, ни что произойдёт по нажатию. Подпись даём текстом внутри (плагин ставит
+  // на узел role="button", и его доступное имя берётся из содержимого), а само число
+  // прячем от озвучки, чтобы не читалось дважды.
+  const labelKey = kind === 'water_tap' ? 'cluster_water'
+    : kind === 'public_toilet' ? 'cluster_toilet' : 'cluster_mixed';
   return L.divIcon({
     className: `wp-cluster wp-cluster-${kind}`,
-    html: `<span>${n}</span>`,
+    html: `<span aria-hidden="true">${n}</span><span class="sr-only">${t(labelKey, { n })}</span>`,
     iconSize: [size, size]
   });
 }
@@ -975,7 +981,11 @@ function renderDetailView() {
           <div class="verified">${t('detail_verified')}: ${p.last_verified_at ? fmtDate(p.last_verified_at) : t('no_data_short')}</div>
           ${p.status === 'unknown' ? `<div class="verified">${t('status_unknown')}</div>` : ''}
         </div>
-        <div class="mini-map" id="mini-map" aria-hidden="true"></div>
+        <!-- inert вместо одного aria-hidden: карта декоративна (адрес и расстояние
+             есть текстом рядом), но Leaflet кладёт внутрь фокусируемые узлы, и с одним
+             aria-hidden фокус мог уехать в блок, которого для скринридера не существует.
+             inert убирает и из дерева доступности, и из tab-порядка. -->
+        <div class="mini-map" id="mini-map" inert></div>
         <div class="detail-links">
           <button class="report-link" id="open-report">${icons.alert.replace('width="22" height="22"', 'width="16" height="16"')} ${t('detail_report')}</button>
           <button class="report-link" id="share-btn">${icons.share.replace('width="22" height="22"', 'width="16" height="16"')} ${t('share_point')}</button>
@@ -1064,7 +1074,11 @@ function renderSettingsView() {
             </button>`).join('')}
         </div>
         <div class="settings-row">
-          ${icons.moon}<span class="grow">${t('settings_dark')}</span>
+          <!-- Подпись — <label for>, а не <span>: обёртка .switch хоть и является
+               label'ом, но содержит только полоску переключателя, без текста, поэтому
+               доступного имени у чекбокса не было вовсе — скринридер объявлял его
+               просто «флажок». Побочная польза: по тексту теперь тоже можно нажать. -->
+          ${icons.moon}<label class="grow" for="theme-toggle">${t('settings_dark')}</label>
           <label class="switch"><input type="checkbox" id="theme-toggle" ${getTheme() === 'dark' ? 'checked' : ''} /><span class="track"></span></label>
         </div>
       </div>
@@ -1282,8 +1296,11 @@ function openReportSheet(p) {
       overlay.querySelector('#r-done').focus();
       return;
     }
+    // role="dialog" висит на обёртке, а не на <form>: для form эта роль не разрешена
+    // (ARIA in HTML), и axe справедливо ругался — форма уже несёт собственную семантику.
     overlay.innerHTML = `
-      <form class="sheet" id="report-form" role="dialog" aria-modal="true" aria-label="${t('report_title')}">
+      <div class="sheet" role="dialog" aria-modal="true" aria-label="${t('report_title')}">
+      <form id="report-form">
         <div class="grabber"></div>
         <h2>${t('report_title')}</h2>
         <div class="demo-notice">${icons.info.replace('width="22" height="22"', 'width="18" height="18"')}<span>${t('report_demo_notice')}</span></div>
@@ -1299,7 +1316,8 @@ function openReportSheet(p) {
           <button class="btn-ghost" id="r-cancel" type="button">${t('report_cancel')}</button>
           <button class="btn-primary" id="r-send" type="submit">${t('report_submit')}</button>
         </div>
-      </form>`;
+      </form>
+      </div>`;
     overlay.querySelectorAll('[data-c]').forEach(b => b.addEventListener('click', () => {
       cat = b.dataset.c;
       overlay.querySelectorAll('.cat-opt').forEach(x => x.classList.toggle('on', x.dataset.c === cat));

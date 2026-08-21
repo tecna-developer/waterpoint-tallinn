@@ -102,6 +102,13 @@ input, textarea { font-family: inherit; font-size: 15px; color: var(--text); }
   outline-offset: 2px;
 }
 
+/* Текст только для скринридера: на экране его нет, в дереве доступности есть.
+   Не `display:none` и не `visibility:hidden` — те убирают элемент и оттуда тоже. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+
 .view { flex: 1; overflow-y: auto; display: flex; flex-direction: column; min-height: 0; }
 .view.no-scroll { overflow: hidden; }
 /* В скролл-контейнере прямые дети не должны сжиматься: иначе на низком вьюпорте
@@ -400,7 +407,18 @@ input, textarea { font-family: inherit; font-size: 15px; color: var(--text); }
   background: var(--surface); border-radius: 20px 20px 0 0; padding: 18px 18px 24px;
   animation: up 0.22s ease-out;
 }
-@keyframes up { from { transform: translateY(40px); opacity: 0.5; } }
+/* Анимируем только сдвиг, без прозрачности. Прозрачность здесь ничего не добавляла
+   (шторка и так выезжает снизу), зато создавала тот же риск, что уже ловили с тайлами
+   карты: кадровый цикл у свёрнутого PWA останавливается, анимация застревает на первом
+   кадре — и шторка остаётся полупрозрачной. В таком состоянии её текст даёт контраст
+   2.6 при норме 4.5, то есть нечитаем. Поймано axe: он замерял в панели, которая не
+   компонует кадры, и увидел ровно этот застрявший кадр. */
+@keyframes up { from { transform: translateY(40px); } }
+
+/* Пользователь просил меньше движения — не спорим (частично закрывает пункт P3). */
+@media (prefers-reduced-motion: reduce) {
+  .sheet { animation: none; }
+}
 .sheet h2 { font-size: 21px; margin-bottom: 12px; }
 .sheet .grabber { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 12px; }
 

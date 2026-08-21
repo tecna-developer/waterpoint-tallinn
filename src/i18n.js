@@ -33,6 +33,14 @@ const dict = {
   filters_reset: { et: 'Lähtesta', en: 'Reset', ru: 'Сбросить' },
   filters_apply: { et: 'Näita {n}', en: 'Show {n}', ru: 'Показать {n}' },
   results_count: { et: '{n} kohta', en: '{n} points', ru: 'Точек: {n}' },
+  // Подпись кластера для скринридера. На экране у кружка только число, и озвучивалось
+  // оно голым: «2», «27» — 26 таких кнопок подряд на общем виде карты, без единого
+  // указания, что это и что будет по нажатию. Формулировка «Точек: {n}» выбрана
+  // намеренно вместо «{n} точек»: она не требует склонения по числу ни в одном из
+  // трёх языков (тот же приём, что в results_count выше).
+  cluster_water: { et: 'Veekohti: {n}. Vajuta lähemale suumimiseks', en: 'Water points: {n}. Activate to zoom in', ru: 'Точек воды: {n}. Нажмите, чтобы приблизить' },
+  cluster_toilet: { et: 'Tualette: {n}. Vajuta lähemale suumimiseks', en: 'Toilets: {n}. Activate to zoom in', ru: 'Туалетов: {n}. Нажмите, чтобы приблизить' },
+  cluster_mixed: { et: 'Kohti: {n}. Vajuta lähemale suumimiseks', en: 'Points: {n}. Activate to zoom in', ru: 'Точек: {n}. Нажмите, чтобы приблизить' },
 
   status_available: { et: 'Tööolek on kinnitatud', en: 'Operating status confirmed', ru: 'Работоспособность подтверждена' },
   status_available_short: { et: 'Kinnitatud', en: 'Confirmed', ru: 'Подтверждено' },
