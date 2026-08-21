@@ -219,6 +219,11 @@ button, a, label, input, textarea, select,
   width: 44px; height: 44px; border-radius: 14px; background: var(--surface);
   box-shadow: var(--shadow); display: grid; place-items: center; color: var(--primary);
 }
+/* Запрос координат идёт до 8 секунд — кнопка обязана показать, что занята, иначе её
+   жмут повторно. Без анимации намеренно: анимации здесь уже дважды застревали
+   (тайлы карты, шторка), а застрявший индикатор занятости хуже, чем его отсутствие.
+   Приглушаем заливку, а не сам глиф: контраст иконки остаётся прежним. */
+.fab.busy { background: var(--primary-soft); cursor: default; }
 .map-card {
   position: absolute; left: 12px; right: 64px; bottom: 14px; z-index: 660;
   background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow);

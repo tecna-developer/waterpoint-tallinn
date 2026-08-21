@@ -42,6 +42,7 @@ const ui = {
   pickMode: false,             // FR-01: ручной выбор точки отсчёта на карте
   toast: null,
   updateReady: false,          // новый воркер ждёт подтверждения (см. registerSW в start)
+  locating: false,             // идёт запрос координат (см. requestGeo)
   mapMovedByUser: false,       // карту двигали руками — автонаведение больше не вмешивается
   mapCenter: [59.437, 24.7536],
   mapZoom: 12                  // весь город: стартовый вид, пока не известны координаты
@@ -159,10 +160,21 @@ function toastHtml() {
 }
 
 // ---------- геолокация (FR-01) ----------
+// getCurrentPosition отвечает не сразу — при плохом приёме до самого таймаута в 8 с.
+// Всё это время кнопка «Моё местоположение» никак не показывала, что запрос идёт, и её
+// естественно жали повторно; на iOS два быстрых тапа по одному месту — это команда
+// «увеличить страницу», то есть молчание кнопки прямо порождало раздутый интерфейс.
+// Отсюда обе половины: показываем занятость и игнорируем повторные нажатия.
 function requestGeo(interactive = false) {
   if (!('geolocation' in navigator)) { state.geoDenied = true; render(); return; }
+  if (ui.locating) return;                 // запрос уже в пути, второй ничего не ускорит
+  ui.locating = true;
+  if (interactive) render();               // фоновый вызов при старте рисует и без нас
+  // Флаг обязан сниматься на ЛЮБОМ исходе, иначе кнопка останется занятой навсегда.
+  const done = () => { ui.locating = false; };
   navigator.geolocation.getCurrentPosition(
     pos => {
+      done();
       state.gpsPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       state.geoDenied = false;
       // Явный тап по «Моё местоположение» — пользователь просит вернуть точку отсчёта
@@ -185,7 +197,7 @@ function requestGeo(interactive = false) {
       }
       render();
     },
-    () => { state.geoDenied = true; render(); },
+    () => { done(); state.geoDenied = true; render(); },
     { enableHighAccuracy: false, timeout: 8000, maximumAge: 120000 }
   );
 }
@@ -757,7 +769,13 @@ function renderMapView() {
       </div>
       <div class="map-fabs">
         <button class="fab ${ui.legendOpen ? 'on' : ''}" id="fab-legend" aria-label="${t('legend_show')}" aria-expanded="${ui.legendOpen}">${icons.layers}</button>
-        <button class="fab" id="fab-locate" aria-label="${t('locate_me')}">${icons.locate}</button>
+        <!-- aria-busy, а не disabled: disabled выкинул бы кнопку из tab-порядка прямо
+             под пальцами клавиатурного пользователя. Повторные нажатия гасит сам
+             requestGeo, а имя кнопки на время запроса меняется — иначе для скринридера
+             ничего бы не происходило все 8 секунд. -->
+        <button class="fab ${ui.locating ? 'busy' : ''}" id="fab-locate"
+                aria-busy="${ui.locating}"
+                aria-label="${ui.locating ? t('locate_busy') : t('locate_me')}">${icons.locate}</button>
       </div>
       ${ui.legendOpen ? legendHtml() : ''}
       ${bannersHtml()}

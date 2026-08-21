@@ -179,6 +179,9 @@ const dict = {
   back: { et: 'Tagasi', en: 'Back', ru: 'Назад' },
   close: { et: 'Sulge', en: 'Close', ru: 'Закрыть' },
   locate_me: { et: 'Minu asukoht', en: 'My location', ru: 'Моё местоположение' },
+  // Запрос координат длится до 8 секунд, и всё это время кнопка молчала — отсюда
+  // повторные нажатия, которые iOS понимал как «увеличить страницу».
+  locate_busy: { et: 'Otsin asukohta…', en: 'Finding your location…', ru: 'Определяем местоположение…' },
   distance_from_search: { et: 'otsingust', en: 'from search', ru: 'от точки поиска' },
 
   // ---- онбординг (FR-01, §7.1): объяснение до системного запроса ----
