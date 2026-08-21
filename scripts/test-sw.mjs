@@ -1,7 +1,12 @@
 // Проверка решений fetch-обработчика service worker'а на мок-окружении.
 //
-//   npm run test:sw            # проверить текущий public/sw.js
+//   npm run test:sw            # проверить текущий src/sw.js
 //   node scripts/test-sw.mjs <путь>   # проверить конкретную версию файла
+//
+// Проверяется ИСХОДНИК воркера, до подстановки precache-манифеста сборкой
+// (vite-plugin-pwa, strategies: 'injectManifest'): токен self.__WB_MANIFEST в исходнике
+// разворачивается в undefined, и воркер сам подставляет пустой список — решения
+// fetch-обработчика от содержимого манифеста не зависят.
 //
 // Зачем отдельный скрипт: SW сознательно не регистрируется на localhost (см. main.js),
 // поэтому в дев-режиме его поведение никак не увидеть, а ошибка в нём проявляется
@@ -11,11 +16,11 @@
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
-const src = readFileSync(process.argv[2] || 'public/sw.js', 'utf8');
+const src = readFileSync(process.argv[2] || 'src/sw.js', 'utf8');
 
-function makeEnv({ networkFails = false, networkStatus = 200, cacheContents = {} } = {}) {
+function makeEnv({ networkFails = false, networkStatus = 200, cacheContents = {}, manifest = [] } = {}) {
   const store = new Map(Object.entries(cacheContents));
-  const log = { put: [], fetched: [] };
+  const log = { put: [], fetched: [], added: [], skipWaiting: 0 };
 
   class FakeResponse {
     constructor(body, { status = 200, type = 'basic' } = {}) {
@@ -27,7 +32,12 @@ function makeEnv({ networkFails = false, networkStatus = 200, cacheContents = {}
   const cache = {
     match: async req => store.get(keyOf(req)),
     put: async (req, res) => { log.put.push(keyOf(req)); store.set(keyOf(req), res); },
-    addAll: async () => {}
+    addAll: async () => {},
+    add: async req => {
+      if (networkFails) throw new Error('offline');
+      log.added.push(keyOf(req));
+      store.set(keyOf(req), new FakeResponse('PRECACHED:' + keyOf(req)));
+    }
   };
   const keyOf = req => typeof req === 'string' ? req : req.url;
 
@@ -50,8 +60,10 @@ function makeEnv({ networkFails = false, networkStatus = 200, cacheContents = {}
     self: {
       listeners: {},
       addEventListener(type, fn) { this.listeners[type] = fn; },
-      skipWaiting: async () => {},
-      clients: { claim: async () => {} }
+      skipWaiting: async () => { log.skipWaiting++; },
+      clients: { claim: async () => {} },
+      // то, что подставляет vite-plugin-pwa на сборке; здесь — руками
+      __WB_MANIFEST: manifest
     },
     FakeResponse
   };
@@ -132,6 +144,58 @@ async function runFetch(env, url, { mode = 'no-cors', method = 'GET' } = {}) {
   check('чужой origin -> не перехватывается', cross, 'PASSTHROUGH');
   const post = await runFetch(t.env, 'https://example.test/x', { method: 'POST' });
   check('POST -> не перехватывается', post, 'PASSTHROUGH');
+}
+
+// 7. Precache берёт список из манифеста сборки, а не разбирает index.html.
+//    Иконки PWA должны попадать в кеш на install, а не после первого обращения.
+{
+  const t = makeEnv({
+    manifest: [
+      { url: 'assets/index-CM8uz-3y.js', revision: null },
+      { url: 'index.html', revision: null },
+      { url: 'icons/icon-192.png', revision: null },
+      { url: 'manifest.webmanifest', revision: null }
+    ]
+  });
+  let waited;
+  t.env.self.listeners.install({ waitUntil: p => { waited = p; } });
+  await waited;
+  check('install -> кеширует файлы из манифеста', t.log.added.length, 5); // 4 + './'
+  check('  и иконку PWA в том числе', t.log.added.includes('icons/icon-192.png'), true);
+  check('  index.html не вычитывается из сети', t.log.fetched.length, 0);
+}
+
+// 8. Один недоступный файл не отменяет кеширование остальных (в отличие от cache.addAll)
+{
+  const t = makeEnv({ manifest: [{ url: 'index.html', revision: null }] });
+  const cache = await t.env.caches.open();
+  const realAdd = cache.add;
+  cache.add = async req => {
+    if (String(req).includes('index.html')) throw new Error('404');
+    return realAdd(req);
+  };
+  let waited;
+  t.env.self.listeners.install({ waitUntil: p => { waited = p; } });
+  let ok = true;
+  try { await waited; } catch { ok = false; }
+  check('один недоступный файл -> install не падает', ok, true);
+}
+
+// 9. Обновление не подменяет воркер само: skipWaiting только по сообщению от страницы.
+//    Прежний воркер звал skipWaiting() прямо в install и менял оболочку под уже
+//    запущенной страницей, загрузившей чанки предыдущей сборки.
+{
+  const t = makeEnv({ manifest: [] });
+  let waited;
+  t.env.self.listeners.install({ waitUntil: p => { waited = p; } });
+  await waited;
+  check('install -> НЕ активирует воркер сам', t.log.skipWaiting, 0);
+  // воркер без обработчика message вообще не умеет обновляться по требованию —
+  // это провал теста, а не повод уронить прогон
+  t.log.skipWaiting = 0;   // иначе засчитаем вызов из install и получим ложный PASS
+  const onMessage = t.env.self.listeners.message;
+  if (typeof onMessage === 'function') onMessage({ data: { type: 'SKIP_WAITING' } });
+  check('SKIP_WAITING от страницы -> активирует', t.log.skipWaiting, 1);
 }
 
 console.log('\n=== Результаты ===');

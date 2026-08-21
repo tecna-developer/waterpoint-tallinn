@@ -1,32 +1,45 @@
 // Кеш оболочки приложения (FR-08: офлайн-доступ к списку/карточкам; тайлы карт не кешируем)
 // версию поднимаем при каждом релизе — иначе установленное PWA живёт на старой оболочке
-const CACHE = 'wpt-shell-v4';
+const CACHE = 'wpt-shell-v5';
 
-// В кеш кладём не только HTML, но и файлы сборки, на которые он ссылается. Иначе
-// оболочка неполна: при запуске PWA приходит свежий index.html с новыми хешами, а сам
-// бандл ещё не разошёлся по CDN или запрос сорвался — скрипта нет, кеш пуст, экран белый.
-// Хеши заранее неизвестны (их даёт Vite), поэтому вычитываем их из самого index.html.
+// Список файлов оболочки подставляет vite-plugin-pwa на этапе сборки (strategies:
+// 'injectManifest'). Раньше воркер вычитывал хеши регуляркой из самого index.html уже
+// в браузере: это требовало сети прямо во время install и молча давало неполную
+// оболочку, если разметка менялась или запрос срывался. Теперь список известен точно
+// и включает не только бандл, но и иконки PWA с манифестом (globPatterns в vite.config.js) —
+// раньше `public/icons/*` попадали в кеш только после первого обращения к ним.
+// `|| []` — чтобы файл можно было исполнить как есть в scripts/test-sw.mjs, где
+// подстановки не происходит; плагин заменяет сам токен self.__WB_MANIFEST.
+const PRECACHE = (self.__WB_MANIFEST || []).map(e => (typeof e === 'string' ? e : e.url));
+
 async function precacheShell() {
   const cache = await caches.open(CACHE);
-  await cache.addAll(['./', './index.html']);
-  try {
-    const html = await (await fetch('./index.html', { cache: 'reload' })).text();
-    const assets = [...html.matchAll(/(?:src|href)="(\.?\/?assets\/[^"]+)"/g)].map(m => m[1]);
-    // по одному: один недоступный файл не должен отменить кеширование остальных,
-    // как это делает cache.addAll()
-    await Promise.all(assets.map(a => cache.add(a).catch(() => {})));
-  } catch { /* нет сети при установке — оболочка доберётся на первом онлайн-запуске */ }
+  // по одному: один недоступный файл не должен отменить кеширование остальных,
+  // как это делает cache.addAll()
+  await Promise.all(
+    ['./', ...PRECACHE].map(url => cache.add(url).catch(() => {}))
+  );
 }
 
-self.addEventListener('install', e => {
-  e.waitUntil(precacheShell().then(() => self.skipWaiting()));
-});
+// Ждём, а не self.skipWaiting(): пока пользователь не подтвердил обновление, страница
+// продолжает работать со своей версией оболочки. Прежний безусловный skipWaiting менял
+// воркер под уже запущенной страницей, которая успела загрузить чанки предыдущей сборки, —
+// ровно тот случай «оболочка собрана из несовместимых версий», от которого в index.html
+// стоит аварийный блок. Момент подмены теперь выбирает пользователь (см. SKIP_WAITING ниже).
+self.addEventListener('install', e => { e.waitUntil(precacheShell()); });
 
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
+});
+
+// Приложение показывает баннер «доступна новая версия» и по нажатию присылает это
+// сообщение — только тогда новый воркер становится активным, после чего страница
+// перезагружается уже на согласованном наборе файлов.
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 // Файлы сборки Vite содержат хеш содержимого в имени (assets/index-CM8uz-3y.js), поэтому

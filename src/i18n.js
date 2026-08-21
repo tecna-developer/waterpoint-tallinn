@@ -159,6 +159,10 @@ const dict = {
   // поле и не понимает, сломалось приложение или пропала связь.
   tiles_failed: { et: 'Kaardi taust ei laadinud — see vajab võrku. Punktide nimekiri ja kaardid töötavad ka võrguühenduseta.', en: 'The map background did not load — it needs a network. The point list and cards still work offline.', ru: 'Фон карты не загрузился — для него нужна сеть. Список точек и карточки работают и без неё.' },
   stale_banner: { et: 'Andmed: {date}', en: 'Data from {date}', ru: 'Данные от {date}' },
+  // Установленное PWA иначе молча остаётся на старой оболочке до полного перезапуска —
+  // причём дважды, потому что первый запуск после деплоя ещё работает на прежнем воркере.
+  update_available: { et: 'Saadaval on uus versioon.', en: 'A new version is available.', ru: 'Доступна новая версия.' },
+  update_action: { et: 'Uuenda', en: 'Update', ru: 'Обновить' },
   empty_title: { et: 'Midagi ei leitud', en: 'Nothing found', ru: 'Ничего не найдено' },
   empty_text: { et: 'Proovi filtreid lõdvendada või lähtestada.', en: 'Try relaxing or resetting the filters.', ru: 'Попробуйте ослабить или сбросить фильтры.' },
   error_title: { et: 'Midagi läks valesti', en: 'Something went wrong', ru: 'Что-то пошло не так' },

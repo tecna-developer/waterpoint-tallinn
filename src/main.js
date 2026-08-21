@@ -41,10 +41,15 @@ const ui = {
   mapZeroSize: false,          // контейнер карты схлопнулся в нулевую высоту (см. ensureMapSized)
   pickMode: false,             // FR-01: ручной выбор точки отсчёта на карте
   toast: null,
+  updateReady: false,          // новый воркер ждёт подтверждения (см. registerSW в start)
   mapMovedByUser: false,       // карту двигали руками — автонаведение больше не вмешивается
   mapCenter: [59.437, 24.7536],
   mapZoom: 12                  // весь город: стартовый вид, пока не известны координаты
 };
+
+// updateSW() из virtual:pwa-register — появляется только после успешной регистрации
+// воркера (не на localhost); до этого баннера обновления всё равно не бывает.
+let applyUpdate = null;
 
 let map = null;
 let mapEl = null;              // контейнер карты переживает ререндеры (см. mountMap)
@@ -335,6 +340,12 @@ function wireChips(rootEl) {
 // ---------- баннеры состояний ----------
 function bannersHtml() {
   let html = '';
+  // Первым: это единственный баннер, требующий действия, и он объясняет, почему
+  // изменений не видно после деплоя.
+  if (ui.updateReady) {
+    html += `<div class="banner info">${icons.info} ${t('update_available')}
+      <button id="banner-update">${t('update_action')}</button></div>`;
+  }
   if (!navigator.onLine) {
     html += `<div class="banner warn">${icons.alert} ${t('offline_banner', { date: fmtDate(state.cachedAt) })}</div>`;
   } else if (state.syncFailed) {
@@ -358,6 +369,10 @@ function bannersHtml() {
 }
 
 function wireBanners(rootEl) {
+  const upd = rootEl.querySelector('#banner-update');
+  // updateSW(true) шлёт воркеру SKIP_WAITING и перезагружает страницу уже на нём —
+  // обе половины обязательны, иначе оболочка останется собранной из разных сборок.
+  if (upd && applyUpdate) upd.addEventListener('click', () => applyUpdate(true));
   const b = rootEl.querySelector('#banner-pick');
   if (!b) return;
   b.addEventListener('click', () => {
@@ -1364,7 +1379,17 @@ async function start() {
   window.addEventListener('orientationchange', () => setTimeout(ensureMapSized, 150));
   window.addEventListener('resize', ensureMapSized);
   if ('serviceWorker' in navigator && !location.hostname.includes('localhost')) {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    // Динамический импорт: на localhost воркер намеренно не регистрируется, и тянуть
+    // сюда виртуальный модуль плагина незачем.
+    import('virtual:pwa-register')
+      .then(({ registerSW }) => {
+        applyUpdate = registerSW({
+          // Новая оболочка скачана и ждёт. Не подменяем её молча под работающей
+          // страницей — показываем баннер и даём решить пользователю.
+          onNeedRefresh() { ui.updateReady = true; render(); }
+        });
+      })
+      .catch(() => {});
   }
 }
 
