@@ -1117,18 +1117,59 @@ function renderSettingsView() {
   });
 }
 
-// ---------- фильтры (FR-08) ----------
-function openFilterSheet() {
+// ---------- общий каркас модальной шторки ----------
+// Обе шторки объявляют себя role="dialog" aria-modal="true", но выполнять этот контракт
+// до сих пор было нечем: при открытой шторке на фоне оставались 55 фокусируемых
+// элементов (карта, её маркеры, нижняя навигация, поиск), Tab спокойно уходил туда,
+// а .view продолжал прокручиваться под шторкой (замер: scrollTop 0 -> 600). То есть
+// «модальность» была только на словах — та же болезнь, что была у role="tab".
+//
+// inert на #view-root закрывает обе дыры разом: убирает фон и из tab-порядка, и из
+// дерева доступности, так что скринридеру не нужно верить aria-modal на слово.
+// Атрибут вешается на #view-root, а класс блокировки прокрутки — на #app: оба узла
+// переживают render(), который перезаписывает только innerHTML (см. index.html).
+// Сам .view так пометить нельзя — он пересоздаётся на каждом ререндере, и фоновое
+// событие (online/offline, завершившийся sync) сняло бы блокировку с открытой шторки.
+function openSheet() {
   const overlay = document.createElement('div');
   overlay.className = 'overlay';
-  // тот же паттерн доступности, что и у формы жалобы (openReportSheet): фокус уходит
-  // в шторку при открытии, Escape и клик по фону закрывают, закрытие возвращает фокус
-  // на кнопку-триггер, а не роняет его в никуда.
+  // запоминаем триггер ДО inert: браузер снимет с него фокус, как только фон станет
+  // инертным, и document.activeElement превратится в <body>
   const opener = document.activeElement;
-  const close = () => {
+  const openerId = opener instanceof HTMLElement ? opener.id : '';
+
+  // afterRemove — то, что должно случиться между закрытием и возвратом фокуса, то есть
+  // render(). Порядок здесь не косметический: самые обычные способы закрыть шторку
+  // («Показать N», «Закрыть» после отправки) тут же перерисовывают вид, а render()
+  // перезаписывает #view-root целиком и уничтожает ту самую кнопку, на которую фокус
+  // только что вернули. Замер до этой правки: применение фильтров оставляло фокус
+  // на <body>, то есть клавиатурный пользователь терял место в интерфейсе ровно в
+  // самом частом сценарии.
+  const close = (afterRemove) => {
     overlay.remove();
+    // сначала вернуть фон к жизни, только потом фокусировать: пока висит inert,
+    // focus() по элементу внутри него молча не срабатывает
+    viewRoot.removeAttribute('inert');
+    app.classList.remove('sheet-open');
+    afterRemove?.();
     if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+    // триггер пересоздан ререндером — ищем его заново по id, как это уже делает
+    // draw() внутри шторки фильтров
+    else if (openerId) document.getElementById(openerId)?.focus();
   };
+
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  overlay.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+
+  viewRoot.setAttribute('inert', '');
+  app.classList.add('sheet-open');
+  app.appendChild(overlay);
+  return { overlay, close };
+}
+
+// ---------- фильтры (FR-08) ----------
+function openFilterSheet() {
+  const { overlay, close } = openSheet();
   const radiusOpts = [[null, t('filters_radius_any')], [1000, '≤ 1 км'], [2000, '≤ 2 км'], [5000, '≤ 5 км']];
   const typeOpts = [[null, t('chip_all')], ['outdoor', t('filters_type_outdoor')], ['indoor', t('filters_type_indoor')]];
   const catOpts = [['all', t('cat_all')], ['water_tap', t('cat_water_tap')], ['public_toilet', t('cat_public_toilet')]];
@@ -1197,7 +1238,7 @@ function openFilterSheet() {
     overlay.querySelector('#f-apply').addEventListener('click', () => {
       ui.category = tmp.category; ui.quick = tmp.quick; ui.radius = tmp.radius;
       ui.point_type = tmp.type; ui.favoritesOnly = tmp.fav;
-      close(); render();
+      close(render);
     });
 
     if (restoreAttr) {
@@ -1206,9 +1247,6 @@ function openFilterSheet() {
     }
   }
   draw();
-  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
-  overlay.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
-  app.appendChild(overlay);
   overlay.querySelector('[data-c]')?.focus();
 }
 
@@ -1220,16 +1258,9 @@ const REPORT_CATEGORIES = {
 };
 
 function openReportSheet(p) {
-  const overlay = document.createElement('div');
-  overlay.className = 'overlay';
+  const { overlay, close } = openSheet();
   const cats = REPORT_CATEGORIES[p.category] || REPORT_CATEGORIES.water_tap;
-  const opener = document.activeElement;
   let cat = null, comment = '', error = '';
-
-  const close = () => {
-    overlay.remove();
-    if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
-  };
 
   function draw(sent = false) {
     if (sent) {
@@ -1242,7 +1273,13 @@ function openReportSheet(p) {
             <button class="btn-secondary" id="r-done" type="button">${t('close')}</button>
           </div>
         </div>`;
-      overlay.querySelector('#r-done').addEventListener('click', () => { overlay.remove(); render(); });
+      // close(), а не overlay.remove(): прямое удаление оставляло фон инертным
+      // и роняло фокус в никуда — после отправки формы возвращать его на триггер
+      // так же обязательно, как после отмены
+      overlay.querySelector('#r-done').addEventListener('click', () => close(render));
+      // innerHTML шторки только что заменён целиком, фокус ушёл на <body> —
+      // переносим его на единственную кнопку нового экрана
+      overlay.querySelector('#r-done').focus();
       return;
     }
     overlay.innerHTML = `
@@ -1287,9 +1324,6 @@ function openReportSheet(p) {
     });
   }
   draw();
-  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
-  overlay.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
-  app.appendChild(overlay);
   overlay.querySelector('.cat-opt')?.focus();
 }
 

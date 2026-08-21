@@ -389,6 +389,12 @@ input, textarea { font-family: inherit; font-size: 15px; color: var(--text); }
   position: absolute; inset: 0; z-index: 1000; background: rgba(15, 23, 35, 0.5);
   display: flex; align-items: flex-end; justify-content: center;
 }
+/* Фон под открытой шторкой не прокручивается. Класс висит на #app, а не на самом
+   .view: .view пересоздаётся каждым render(), и фоновое событие (завершившийся sync,
+   online/offline) сняло бы блокировку прямо под открытой шторкой.
+   Прокручивается здесь только .view — #app и body с overflow:hidden и height:100dvh,
+   поэтому привычного `body { overflow: hidden }` тут недостаточно, он ничего не держит. */
+#app.sheet-open .view { overflow: hidden; }
 .sheet {
   width: 100%; max-height: 88%; overflow-y: auto;
   background: var(--surface); border-radius: 20px 20px 0 0; padding: 18px 18px 24px;
