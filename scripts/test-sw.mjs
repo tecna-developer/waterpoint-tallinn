@@ -198,6 +198,36 @@ async function runFetch(env, url, { mode = 'no-cors', method = 'GET' } = {}) {
   check('SKIP_WAITING от страницы -> активирует', t.log.skipWaiting, 1);
 }
 
+// 10. Расшаренные ссылки ?p=<id> не должны плодить копии оболочки в кеше.
+//     Раньше ключом был полный URL: 174 точки -> до 174 одинаковых index.html.
+{
+  const t = makeEnv({ networkStatus: 200 });
+  await runFetch(t.env, 'https://example.test/app/?p=wp-1', { mode: 'navigate' });
+  await runFetch(t.env, 'https://example.test/app/?p=wc-2', { mode: 'navigate' });
+  await runFetch(t.env, 'https://example.test/app/', { mode: 'navigate' });
+  const ключи = [...new Set(t.log.put)];
+  check('три разных ?p= -> один ключ в кеше', ключи.length, 1);
+  check('  и ключ без query', ключи[0], 'https://example.test/app/');
+}
+
+// 11. Query отбрасывается только у навигаций: у обычных запросов он может быть значимым
+{
+  const t = makeEnv({ networkStatus: 200 });
+  await runFetch(t.env, 'https://example.test/api.json?v=1');
+  await runFetch(t.env, 'https://example.test/api.json?v=2');
+  check('не-навигация -> query сохраняется в ключе', [...new Set(t.log.put)].length, 2);
+}
+
+// 12. Офлайн: deep link должен находить оболочку по нормализованному ключу,
+//     то есть ещё до SPA-фолбэка на './index.html'
+{
+  const t = makeEnv({ networkFails: true });
+  const cache = await t.env.caches.open();
+  await cache.put('https://example.test/app/', new t.FakeResponse('SHELL_ИЗ_PRECACHE'));
+  const r = await runFetch(t.env, 'https://example.test/app/?p=wp-42', { mode: 'navigate' });
+  check('офлайн, deep link -> отдаёт оболочку из кеша', r, 'SHELL_ИЗ_PRECACHE');
+}
+
 console.log('\n=== Результаты ===');
 for (const r of results) {
   console.log(`${r.pass ? 'PASS' : 'FAIL'}  ${r.name}` + (r.pass ? '' : `  (получено: ${r.actual}, ожидалось: ${r.expected})`));

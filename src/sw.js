@@ -1,6 +1,8 @@
 // Кеш оболочки приложения (FR-08: офлайн-доступ к списку/карточкам; тайлы карт не кешируем)
 // версию поднимаем при каждом релизе — иначе установленное PWA живёт на старой оболочке
-const CACHE = 'wpt-shell-v5';
+// v6: сменились ключи кеша для навигаций (см. cacheKey) — прежние записи вида
+// `index.html?p=<id>` стали мусором, и смена версии их вычищает в activate.
+const CACHE = 'wpt-shell-v6';
 
 // Список файлов оболочки подставляет vite-plugin-pwa на этапе сборки (strategies:
 // 'injectManifest'). Раньше воркер вычитывал хеши регуляркой из самого index.html уже
@@ -48,6 +50,20 @@ self.addEventListener('message', e => {
 // с полностью закешированной оболочкой.
 const isHashedAsset = url => /\/assets\/.*-[\w-]{8,}\.(js|css)$/.test(url.pathname);
 
+// Ключ, под которым ответ лежит в кеше. Для навигаций — без query: по любому
+// `?p=<id>` отдаётся одна и та же оболочка, а различает точки уже приложение на
+// клиенте. Раньше ключом был полный URL, поэтому каждая расшаренная ссылка (FR-13)
+// оседала отдельной копией index.html — при 174 точках это до 174 одинаковых
+// оболочек, и на живом демо в кеш успел попасть даже разовый `index.html?_=<время>`.
+// Возвращаем строку, а не Request: Cache API принимает и её, а совпадает она с ключом
+// './' из precache — значит офлайновый deep link находит оболочку сразу, не доходя
+// до фолбэка ниже.
+function cacheKey(request) {
+  if (request.mode !== 'navigate') return request;
+  const url = new URL(request.url);
+  return url.origin + url.pathname;
+}
+
 async function cacheFirst(request) {
   const cached = await caches.match(request);
   if (cached) return cached;
@@ -62,7 +78,7 @@ async function networkFirst(request) {
     await putIfOk(request, res);
     return res;
   } catch (err) {
-    const cached = await caches.match(request);
+    const cached = await caches.match(cacheKey(request));
     if (cached) return cached;
     // Навигацию (открытие приложения) уводим на оболочку — это и есть SPA-фолбэк.
     // Для всего остального возвращать index.html нельзя: раньше упавший запрос за
@@ -81,7 +97,7 @@ async function networkFirst(request) {
 async function putIfOk(request, res) {
   if (!res || !res.ok || res.type === 'opaque') return;
   const cache = await caches.open(CACHE);
-  await cache.put(request, res.clone());
+  await cache.put(cacheKey(request), res.clone());
 }
 
 self.addEventListener('fetch', e => {
