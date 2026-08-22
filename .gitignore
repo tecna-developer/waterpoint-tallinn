@@ -1,2 +1,8 @@
 node_modules/
 dist/
+
+# Личные настройки редактора — у каждого свои
+.vscode/
+
+# Снимки и логи, которые складывает Playwright MCP при отладке
+.playwright-mcp/
