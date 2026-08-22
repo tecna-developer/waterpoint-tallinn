@@ -262,8 +262,22 @@ export function origin() { return state.activeOrigin; }
 
 export function withDistances(points) {
   const o = origin();
-  return points.map(p => ({ ...p, dist: o ? distanceM(o, p) : null }))
-    .sort((a, b) => (a.dist ?? 1e12) - (b.dist ?? 1e12));
+  return points
+    .map(p => {
+      // Неконечное расстояние (битые координаты дают NaN) приравниваем к «нет данных»:
+      // иначе оно доезжает до fmtDist и печатается как «NaN км».
+      const d = o ? distanceM(o, p) : null;
+      return { ...p, dist: Number.isFinite(d) ? d : null };
+    })
+    // Сравнение писалось как `a.dist ?? 1e12`, но `??` не ловит NaN, а NaN в вычитании
+    // даёт NaN — сортировка считала такие точки «равными всем», и точка без координат
+    // могла встать первой, то есть выдать себя за ближайшую. Теперь порядок задан явно.
+    .sort((a, b) => {
+      if (a.dist == null && b.dist == null) return 0;
+      if (a.dist == null) return 1;
+      if (b.dist == null) return -1;
+      return a.dist - b.dist;
+    });
 }
 
 // Раньше «м»/«км» были захардкожены по-русски и лезли на EN/ET экраны на каждой
