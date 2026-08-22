@@ -33,6 +33,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Линтер
+        run: npm run lint
       - name: Юнит-тесты логики данных
         run: npm test
       - name: Тесты service worker'а

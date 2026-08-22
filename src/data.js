@@ -182,7 +182,7 @@ export function loadCached() {
     try {
       const stored = localStorage.getItem(layer.cacheKey);
       if (stored) { raw = JSON.parse(stored); at = localStorage.getItem(layer.atKey); }
-    } catch (e) { /* повреждённый кеш -> seed */ }
+    } catch { /* повреждённый кеш -> seed */ }
     if (!raw) { raw = layer.seed.points; at = layer.seed.fetched_at; }
     setLayer(layer, raw, at, false);
   }
@@ -198,7 +198,7 @@ async function syncLayer(layer) {
     raw = layer.normalize(json.features);
     if (!raw.length) throw new Error('empty after normalize');
     now = new Date().toISOString();
-  } catch (e) {
+  } catch {
     // показываем последнюю успешную копию именно этого слоя (FR-01)
     state.layers[layer.category] = { ...state.layers[layer.category], syncFailed: true };
     publish();

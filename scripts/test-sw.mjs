@@ -101,11 +101,7 @@ async function runFetch(env, url, { mode = 'no-cors', method = 'GET' } = {}) {
 
 // 2. Офлайн-навигация всё ещё должна получать оболочку
 {
-  const { env, FakeResponse } = makeEnv({
-    networkFails: true,
-    cacheContents: { './index.html': null }
-  });
-  // положим оболочку правильным объектом
+  // кладём оболочку в кеш правильным объектом-ответом, а не заглушкой
   const env2 = makeEnv({ networkFails: true });
   const cache = await env2.env.caches.open();
   await cache.put('./index.html', new env2.FakeResponse('SHELL'));
