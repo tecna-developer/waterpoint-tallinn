@@ -15,7 +15,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Проверки отдельным шагом перед сборкой: пуш в main деплоит демо автоматически, и без
+  # этого барьера логическая регрессия уезжает к пользователям молча. Сборка сама по себе
+  # ловит только то, что не парсится, — синтаксис. Сломанную сортировку или статусы
+  # поймают именно тесты.
+  # Отдельным job'ом, а не шагами внутри build: когда падает, в списке проверок сразу
+  # видно «checks», а не «build», — понятно, что дело в поведении, а не в сборке.
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # 22 — та же мажорная версия, на которой прогоняются проверки локально; jsdom
+          # к тому же требует минимум 20.19, и «просто 20» зависело бы от того, какую
+          # именно 20.x подставит раннер.
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Юнит-тесты логики данных
+        run: npm test
+      - name: Тесты service worker'а
+        run: npm run test:sw
+
   build:
+    needs: checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,7 +48,7 @@ jobs:
           enablement: true
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npm run build
