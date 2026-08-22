@@ -810,19 +810,27 @@ function renderMapView() {
           ${chipsHtml()}
         </div>
       </div>
-      <div class="map-fabs">
-        <button class="fab ${ui.legendOpen ? 'on' : ''}" id="fab-legend" aria-label="${t('legend_show')}" aria-expanded="${ui.legendOpen}">${icons.layers}</button>
-        <!-- aria-busy, а не disabled: disabled выкинул бы кнопку из tab-порядка прямо
-             под пальцами клавиатурного пользователя. Повторные нажатия гасит сам
-             requestGeo, а имя кнопки на время запроса меняется — иначе для скринридера
-             ничего бы не происходило все 8 секунд. -->
-        <button class="fab ${ui.locating ? 'busy' : ''}" id="fab-locate"
-                aria-busy="${ui.locating}"
-                aria-label="${ui.locating ? t('locate_busy') : t('locate_me')}">${icons.locate}</button>
+      <!-- Нижний слой над картой — один поток, как и верхний (.map-overlay-top).
+           Раньше это были четыре независимо спозиционированных блока, каждый со своим
+           подобранным вручную отступом снизу: карточка 14px, баннеры 96, кнопки 170,
+           легенда 226 — то есть каждое число молча предполагало высоту соседа снизу.
+           Стоило баннерам занять больше 74px (а офлайн их сразу два, и один в три
+           строки), кнопки уезжали под них: на устройстве «Моё местоположение» пропала. -->
+      <div class="map-overlay-bottom">
+        ${ui.legendOpen ? legendHtml() : ''}
+        <div class="map-fabs">
+          <button class="fab ${ui.legendOpen ? 'on' : ''}" id="fab-legend" aria-label="${t('legend_show')}" aria-expanded="${ui.legendOpen}">${icons.layers}</button>
+          <!-- aria-busy, а не disabled: disabled выкинул бы кнопку из tab-порядка прямо
+               под пальцами клавиатурного пользователя. Повторные нажатия гасит сам
+               requestGeo, а имя кнопки на время запроса меняется — иначе для скринридера
+               ничего бы не происходило все 8 секунд. -->
+          <button class="fab ${ui.locating ? 'busy' : ''}" id="fab-locate"
+                  aria-busy="${ui.locating}"
+                  aria-label="${ui.locating ? t('locate_busy') : t('locate_me')}">${icons.locate}</button>
+        </div>
+        ${bannersHtml()}
+        ${sel ? mapCardHtml(sel) : ''}
       </div>
-      ${ui.legendOpen ? legendHtml() : ''}
-      ${bannersHtml()}
-      ${sel ? mapCardHtml(sel) : ''}
       ${toastHtml()}
     </div>
     ${navHtml()}`;

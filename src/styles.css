@@ -206,7 +206,17 @@ button, a, label, input, textarea, select,
 .banner.warn { background: var(--amber-soft); color: var(--amber); }
 .banner.info { background: var(--primary-soft); color: var(--primary-strong); }
 .banner button { margin-left: auto; font-weight: 600; text-decoration: underline; }
-.map-view .banners { position: absolute; bottom: 96px; left: 0; right: 0; z-index: 650; }
+/* Нижний слой над картой: один поток снизу вверх вместо четырёх блоков с вручную
+   подобранными `bottom`. Порядок в разметке — легенда, кнопки, баннеры, карточка точки.
+   pointer-events здесь обязателен: контейнер растянут на всю ширину, и без него
+   прозрачные промежутки между блоками перехватывали бы перетаскивание карты и тапы. */
+.map-overlay-bottom {
+  position: absolute; left: 0; right: 0; bottom: 14px; z-index: 650;
+  display: flex; flex-direction: column; gap: 10px;
+  pointer-events: none;
+}
+.map-overlay-bottom > * { pointer-events: auto; }
+.map-view .banners { z-index: 650; }
 
 /* ---------- карта ---------- */
 .map-view { position: relative; }
@@ -214,7 +224,7 @@ button, a, label, input, textarea, select,
 #map { position: absolute; inset: 0; z-index: 1; background: #dceaf2; }
 /* режим ручного выбора точки отсчёта (FR-01) */
 #map.picking { cursor: crosshair; }
-.map-fabs { position: absolute; right: 12px; bottom: 170px; z-index: 650; display: flex; flex-direction: column; gap: 10px; }
+.map-fabs { align-self: flex-end; margin-right: 12px; display: flex; flex-direction: column; gap: 10px; }
 .fab {
   width: 44px; height: 44px; border-radius: 14px; background: var(--surface);
   box-shadow: var(--shadow); display: grid; place-items: center; color: var(--primary);
@@ -225,7 +235,9 @@ button, a, label, input, textarea, select,
    Приглушаем заливку, а не сам глиф: контраст иконки остаётся прежним. */
 .fab.busy { background: var(--primary-soft); cursor: default; }
 .map-card {
-  position: absolute; left: 12px; right: 64px; bottom: 14px; z-index: 660;
+  /* margin-right больше 12px: карточка и кнопки теперь в одном потоке и по высоте не
+     пересекаются, но узкая карточка привычнее и не тянется во всю ширину экрана. */
+  margin: 0 64px 0 12px; z-index: 660;
   background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow);
   display: flex; align-items: center; gap: 10px; padding: 10px;
 }
@@ -523,7 +535,7 @@ button, a, label, input, textarea, select,
 
 /* ---------- легенда карты (§7.1) ---------- */
 .legend {
-  position: absolute; right: 12px; bottom: 226px; z-index: 660; width: 208px;
+  align-self: flex-end; margin-right: 12px; z-index: 660; width: 208px;
   background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow);
   border: 1px solid var(--border); padding: 10px 12px 12px;
 }
