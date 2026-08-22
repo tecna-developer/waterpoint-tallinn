@@ -8,6 +8,8 @@ import 'leaflet.markercluster';
 import './styles.css';
 import { t, getLang, setLang, LANGS, pointsCount, localeTag } from './i18n.js';
 import { applyFilters, withinRadius } from './filters.js';
+import { pointName, pointPlace } from './points.js';
+import { matchLocal, MIN_QUERY } from './search.js';
 import { icons, markerSvg, thumbSvg } from './icons.js';
 import {
   state, loadCached, sync, computeStatus, withDistances, fmtDist, walkMinutes,
@@ -79,18 +81,6 @@ function filtered() {
 function findPoint(id) {
   const p = state.points.find(x => x.id === id);
   return p ? { ...p, status: computeStatus(p), dist: origin() ? withDistances([p])[0].dist : null } : null;
-}
-
-// В источнике есть локализованные названия туалетов; у части точек имени нет вовсе.
-function pointName(p) {
-  if (p.category !== 'public_toilet') return p.name;
-  const lang = getLang();
-  const localized = lang === 'en' ? p.name_en : lang === 'ru' ? p.name_ru : null;
-  return localized || p.name || t('toilet_unnamed');
-}
-
-function pointPlace(p) {
-  return [p.asum, p.district].filter(Boolean).join(', ');
 }
 
 // Показывать чип имеет смысл, только если в данных есть хоть одна такая точка.
@@ -208,13 +198,9 @@ let suggestTimer = null;
 // перезаписывал уже показанные подсказки для текста, которого в поле давно нет
 // (подтверждено: медленный ответ для «stalequery» затирал уже отрисованный «freshquery»).
 async function buildSuggestions(q, box, input) {
-  const query = q.trim().toLowerCase();
-  if (query.length < 2) { box.innerHTML = ''; box.hidden = true; return; }
-  const dd = districts().filter(d => d.toLowerCase().includes(query));
-  const pts = state.points.filter(p =>
-    (pointName(p) || '').toLowerCase().includes(query) ||
-    (p.district || '').toLowerCase().includes(query) ||
-    (p.asum || '').toLowerCase().includes(query)).slice(0, 5);
+  // Правила отбора живут в search.js — здесь остаются вывод и сеть.
+  const { query, districts: dd, points: pts } = matchLocal(q, state.points, districts());
+  if (query.length < MIN_QUERY) { box.innerHTML = ''; box.hidden = true; return; }
   let html = '';
   if (dd.length) {
     html += `<div class="group-label">${t('search_districts')}</div>` +
