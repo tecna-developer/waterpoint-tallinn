@@ -42,6 +42,9 @@ npm run test:all  # и то, и другое
 - `data.js` — конфиг слоёв, синхронизация с ArcGIS, кеш, localStorage, статусы, тема
 - `data/waterpoints.json` — снапшот 78 кранов
 - `data/toilets.json` — снапшот 96 туалетов
+- `filters.js` — правила отбора точек (`applyFilters`, `withinRadius`). Вынесены из
+  `main.js`, чтобы их можно было проверить тестом: ни DOM, ни глобального состояния,
+  всё приходит аргументами. Радиус применяется отдельно и после расчёта расстояний.
 - `i18n.js` — строки ET/EN/RU, автовыбор языка, `localeTag()` для дат и чисел
 - `icons.js` — SVG-иконки, `markerSvg(category, status, selected)`, `thumbSvg(category)`
 - `styles.css` — стили, дизайн-токены, светлая/тёмная темы

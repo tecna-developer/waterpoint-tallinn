@@ -7,6 +7,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster';
 import './styles.css';
 import { t, getLang, setLang, LANGS, pointsCount, localeTag } from './i18n.js';
+import { applyFilters, withinRadius } from './filters.js';
 import { icons, markerSvg, thumbSvg } from './icons.js';
 import {
   state, loadCached, sync, computeStatus, withDistances, fmtDist, walkMinutes,
@@ -65,18 +66,14 @@ let lastRenderedView = null;   // для восстановления scrollTop 
 let savedScrollTop = 0;
 
 // ---------- фильтрация (FR-08, FR-16) ----------
+// Сами правила отбора живут в filters.js — без DOM и без глобального состояния, чтобы
+// их можно было проверить тестом. Здесь остаётся только связывание с ui и state.
 function filtered() {
-  let pts = state.points.map(p => ({ ...p, status: computeStatus(p) }));
-  const favs = getFavorites();
-  if (ui.category !== 'all') pts = pts.filter(p => p.category === ui.category);
-  if (ui.quick === 'available') pts = pts.filter(p => p.status === 'available');
-  if (ui.quick === 'animals') pts = pts.filter(p => p.dog_bowl === true);
-  if (ui.favoritesOnly) pts = pts.filter(p => favs.has(p.id));
-  // indoor/outdoor описывает только краны — источник по туалетам этого не различает
-  if (ui.point_type) pts = pts.filter(p => p.point_type === ui.point_type);
-  pts = withDistances(pts);
-  if (ui.radius && origin()) pts = pts.filter(p => p.dist != null && p.dist <= ui.radius);
-  return pts;
+  const pts = state.points.map(p => ({ ...p, status: computeStatus(p) }));
+  const отобранные = withDistances(applyFilters(pts, ui, getFavorites()));
+  // Радиус имеет смысл только когда есть от чего мерить: без точки отсчёта у всех
+  // точек dist === null, и ограничение вычистило бы список подчистую.
+  return origin() ? withinRadius(отобранные, ui.radius) : отобранные;
 }
 
 function findPoint(id) {
