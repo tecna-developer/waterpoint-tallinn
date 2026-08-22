@@ -579,8 +579,28 @@ function mountMap(slot) {
   }
   // Каждый триггер по отдельности ненадёжен (см. ensureMapSized), поэтому дёргаем
   // проверку и сразу, и с запасом по времени — на случай поздней раскладки.
-  requestAnimationFrame(ensureMapSized);
-  [0, 150, 400, 1000].forEach(ms => setTimeout(ensureMapSized, ms));
+  requestAnimationFrame(() => { applyMapTopInset(); ensureMapSized(); });
+  [0, 150, 400, 1000].forEach(ms => setTimeout(() => { applyMapTopInset(); ensureMapSized(); }, ms));
+}
+
+// Отступ карты сверху, чтобы точки не оказывались наполовину за поиском и фильтрами.
+// Меряем фактическую нижнюю границу панелей, а не подставляем число: их высота зависит
+// от системного шрифта и от того, сколько чипов показано (часть скрыта, когда в данных
+// нет соответствующих признаков). Именно на числах, подобранных под «обычный» шрифт,
+// этот экран ломался дважды — сверху и снизу.
+function applyMapTopInset() {
+  if (!mapEl) return;
+  const view = mapEl.closest('.map-view');
+  const panels = view?.querySelector('.map-overlay-top');
+  if (!view || !panels) return;
+  const h = Math.round(panels.getBoundingClientRect().bottom - view.getBoundingClientRect().top);
+  if (!(h > 0)) return;                     // до раскладки высота нулевая — не трогаем
+  const next = h + 'px';
+  if (view.style.getPropertyValue('--map-top-inset') === next) return;
+  view.style.setProperty('--map-top-inset', next);
+  // Leaflet не следит за размером контейнера сам: без этого он останется с прежним
+  // и начнёт считать координаты от старой геометрии.
+  map?.invalidateSize({ animate: false });
 }
 
 // Единственная защита от «карта есть, а тайлов нет».
@@ -1516,8 +1536,11 @@ async function start() {
     if (!document.hidden) refreshMapAfterResume();
   });
   window.addEventListener('pageshow', refreshMapAfterResume); // возврат из bfcache
-  window.addEventListener('orientationchange', () => setTimeout(ensureMapSized, 150));
-  window.addEventListener('resize', ensureMapSized);
+  // Поворот и смена размера окна меняют и высоту панелей (перенос чипов на две строки),
+  // поэтому пересчитываем отступ карты вместе с проверкой её размера.
+  const пересчитать = () => { applyMapTopInset(); ensureMapSized(); };
+  window.addEventListener('orientationchange', () => setTimeout(пересчитать, 150));
+  window.addEventListener('resize', пересчитать);
   if ('serviceWorker' in navigator && !location.hostname.includes('localhost')) {
     // Динамический импорт: на localhost воркер намеренно не регистрируется, и тянуть
     // сюда виртуальный модуль плагина незачем.
