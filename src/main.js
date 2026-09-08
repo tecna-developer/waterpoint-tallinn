@@ -64,7 +64,7 @@ let applyUpdate = null;
 // tms: true — у Maa-amet ось Y отсчитывается снизу, а не сверху, как в схеме XYZ.
 // maxNativeZoom: 18 — глубже тайлов нет (z19 отдаёт 404). Leaflet растянет последний
 // уровень сам, вместо того чтобы запрашивать несуществующее и ловить ошибки.
-const TILE_URL = 'https://tiles.maaamet.ee/tm/tms/1.0.0/hallkaart@GMC/{z}/{x}/{y}.png';
+const TILE_URL = 'https://tiles.maaamet.ee/tm/tms/1.0.0/kaart@GMC/{z}/{x}/{y}.png';
 const TILE_OPTIONS = { tms: true, maxZoom: 19, maxNativeZoom: 18 };
 const TILE_ATTRIBUTION = 'Aluskaart &copy; <a href="https://geoportaal.maaamet.ee/">Maa-amet</a>';
 
