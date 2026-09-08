@@ -493,7 +493,7 @@ button, a, label, input, textarea, select,
 .seg .chip { box-shadow: none; }
 
 /* leaflet поправки */
-/* Атрибуция обязана остаться читаемой — это юридическое требование лицензии OSM/CARTO,
+/* Атрибуция обязана остаться читаемой — это юридическое требование условий Maa-amet,
    а не декор. Собственные стили Leaflet давали 4.02 в светлой теме и 2.17 в тёмной. */
 .leaflet-control-attribution {
   font-size: 9px;
