@@ -55,6 +55,19 @@ const ui = {
 // воркера (не на localhost); до этого баннера обновления всё равно не бывает.
 let applyUpdate = null;
 
+// Подложка карты. Провайдер вынесен в одно место не для красоты: его уже пришлось
+// менять на ходу. CARTO стал впечатывать «API KEY REQUIRED» прямо в пиксели тайлов для
+// запросов без ключа — тайлы при этом приходят с HTTP 200, ошибок в консоли нет, и
+// приложение не может такое заметить: у всех пользователей карта просто оказалась
+// испорчена надписью. Maa-amet отдаёт официальную эстонскую подложку без ключа и без
+// регистрации, покрытие ограничено Эстонией — приложению про Таллинн этого хватает.
+// tms: true — у Maa-amet ось Y отсчитывается снизу, а не сверху, как в схеме XYZ.
+// maxNativeZoom: 18 — глубже тайлов нет (z19 отдаёт 404). Leaflet растянет последний
+// уровень сам, вместо того чтобы запрашивать несуществующее и ловить ошибки.
+const TILE_URL = 'https://tiles.maaamet.ee/tm/tms/1.0.0/hallkaart@GMC/{z}/{x}/{y}.png';
+const TILE_OPTIONS = { tms: true, maxZoom: 19, maxNativeZoom: 18 };
+const TILE_ATTRIBUTION = 'Aluskaart &copy; <a href="https://geoportaal.maaamet.ee/">Maa-amet</a>';
+
 let map = null;
 let mapEl = null;              // контейнер карты переживает ререндеры (см. mountMap)
 let mapResizeObserver = null;  // следит за фактическим размером контейнера (см. mountMap)
@@ -489,10 +502,7 @@ function mountMap(slot) {
       doubleClickZoom: !касание
     }).setView(ui.mapCenter, ui.mapZoom);
     if (касание) enableTapZoom(mapEl);
-    const tiles = tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap, &copy; CARTO',
-      maxZoom: 19
-    }).addTo(map);
+    const tiles = tileLayer = L.tileLayer(TILE_URL, { ...TILE_OPTIONS, attribution: TILE_ATTRIBUTION }).addTo(map);
     // Подложка — единственное, что всегда тянется из сети (точки лежат в кеше). Если
     // тайлы не пришли — офлайн-запуск установленного PWA, блокировка CDN, плохая
     // связь — пользователь раньше видел просто пустое серое поле без объяснений:
@@ -1111,7 +1121,7 @@ function renderDetailView() {
   if (miniMap) { miniMap.remove(); miniMap = null; }
   miniMap = L.map('mini-map', { zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, attributionControl: false, tap: false })
     .setView([p.lat, p.lng], 15);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(miniMap);
+  L.tileLayer(TILE_URL, TILE_OPTIONS).addTo(miniMap);
   L.marker([p.lat, p.lng], { icon: L.divIcon({ className: 'wp-marker', html: markerSvg(p.category, p.status, true), iconSize: [44, 44], iconAnchor: [22, 44] }), interactive: false }).addTo(miniMap);
 }
 
